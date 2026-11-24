@@ -1,33 +1,82 @@
-# PRD 02 · Roda Sabtu
+# PRD 02 · Roda Sabtu / Gacha Roulette (Bpedia Kelopak)
 
-**Versi 0.1 · 24 November 2026 · Pemilik keputusan bisnis: tim kampanye Bpedia**
+**Versi 1.0 (Final & Resmi) · 24 November 2026 · Owner: Muhammad Yusuf (Bpedia)**  
+Dokumen spesifikasi teknis dan aturan bisnis modul Roda Sabtu Bpedia Kelopak.  
+Induk acuan: `bpedia-kelopak-hub/PRD.md`.
 
-## Penawaran dan jadwal
-Saat promo aktif, pengguna terautentikasi mendapat tepat satu putaran gratis per Sabtu WIB. Satu periode mingguan adalah Sabtu 00.00 hingga Minggu 00.00 WIB, dengan batas akhir eksklusif. Jatah yang tidak terpakai berakhir saat periode tutup. Pengguna dapat ikut Sabtu berikutnya jika kampanye masih aktif. Beberapa banner untuk periode yang sama memakai jatah akun yang sama. Putaran gratis tidak mensyaratkan pembelian, saldo atau pembayaran tambahan.
+---
 
-## Sebelum, selama, dan setelah putaran
-1. Pengguna melihat waktu buka/tutup, daftar hadiah, probabilitas numerik setiap hasil, kuota produk tersedia, serta ketentuan dan biaya ongkir yang berlaku bagi wilayahnya. Bila ongkir tergantung tujuan, pilih tujuan dan lihat estimasi atau batas yang disetujui dahulu.
-2. Tombol “Putar gratis” aktif setelah konfigurasi valid dan syarat ditampilkan. Jika versi syarat berubah, tampilkan versi baru dan beri kesempatan membatalkan tanpa memakai jatah.
-3. Server memilih hasil, menyimpan receipt dan mencadangkan stok atau mengkreditkan Kelopak secara atomik. Animasi hanya mengungkap hasil yang tercatat. Pengguna dapat mengurangi gerakan dan tetap memperoleh hasil tertulis.
-4. Produk menampilkan nomor klaim, tenggat, ongkir, alamat melalui alur aplikasi utama dan status kirim. Kelopak menampilkan jumlah dan saldo. Masuk dari perangkat lain membuka hasil yang sama.
+## 1. Tujuan & Nilai bagi Pengguna
+Menciptakan momentum kegembiraan mingguan bagi pembeli Bpedia setiap akhir pekan. Pengguna yang membuka aplikasi Bpedia pada hari Sabtu berhak mendapatkan **1 putaran gratis** untuk memenangkan produk gratis atau Kelopak.
 
-## Contoh untuk pengujian
-| Hadiah | Saat produk tersedia | Sesudah kuota contoh habis |
-|---|---:|---:|
-| Satu produk demo | 10% | 0% |
-| 3 Kelopak | 90% | 100% |
+---
 
-Kuota demo satu unit, ongkir demo Rp0. Nilai ini hanya berlaku dalam simulasi. Pada produksi peluang harus berjumlah 100%, memakai versi konfigurasi, anggaran dan periode efektif. Jika unit terakhir diambil pengguna lain antara tampilan dan putaran, kembalikan odds_changed serta konfigurasi baru sebelum menghabiskan jatah. SKU, nilai Kelopak, metode alokasi, dukungan wilayah, subsidi ongkir dan tanggal kampanye merupakan keputusan pemilik promo.
+## 2. Aturan Permainan & Jadwal Promosi
 
-## Batas sistem dan operasional
-Gunakan RNG server, satu unique key (akun, Sabtu WIB) dan transaksi stok yang menolak nilai negatif. Outbox mengirim permintaan fulfillment. Kegagalan fulfillment tetap menyimpan hak pengguna. Jika saldo, RNG, atau kuota tak tersedia sebelum commit, kembalikan kegagalan yang dapat dicoba lagi. Operator bisa menjeda putaran baru dan melanjutkan pemenuhan yang sudah terbit. Simpan versi peluang bersama receipt untuk rekonsiliasi.
+| Parameter | Ketentuan Resmi |
+|---|---|
+| **Jadwal Buka** | Hari **Sabtu pukul 00.00 – 23.59.59 WIB** (Asia/Jakarta). |
+| **Frekuensi** | **1 kali putaran gratis per akun** per Sabtu aktif selama periode promo. |
+| **Biaya Putaran** | **100% Gratis**. Tidak ada sistem beli putaran (sesuai kepatuhan Apple & Google). |
+| **Hadiah 1: Produk Gratis** | Diberikan jika RNG memicu kemenangan dan stok kuota promo > 0. |
+| **Hadiah 2: Kelopak** | Hadiah alternatif (misal: 3 Kelopak = Rp300). |
+| **Transparansi Sebelum Putar** | Persentase peluang menang (%) dan sisa kuota produk wajib tampil di layar sebelum tombol putar dapat disentuh. |
+| **Ketentuan Ongkir** | Subsidi Ongkir Rp0 selama periode promo (atau syarat ongkir tertera jelas). |
 
-## Uji penerimaan
-- Jumat 23.59, Sabtu 00.00, Sabtu 23.59, dan Minggu 00.00 mengikuti WIB meski perangkat berada di luar Indonesia.
-- Sabtu di luar periode promo menampilkan status tutup. Dua putaran serentak dari Android/web untuk akun yang sama menghasilkan satu hadiah.
-- Dua akun bersaing atas produk terakhir. Satu reservasi saja dapat berhasil; pengguna dengan syarat usang melihat peluang baru sebelum konfirmasi.
-- Timeout setelah hasil ditetapkan, refresh, keluar lalu masuk, serta skip animasi menampilkan satu receipt. Stok nol masih memungkinkan Kelopak dengan peluang terbaru.
-- Syarat bisa dibaca dengan pembaca layar sebelum tombol. Teks status tidak bergantung pada warna roda.
+---
 
-## Tinjauan rilis dan pengukuran
-Catat eligible_open, terms_shown, spin_committed, prize_claimed dan fulfillment_failed dengan ID transaksi pseudonim. Ukur konversi putar, jumlah produk terkirim, distribusi aktual per versi peluang dan biaya tiap Sabtu. Untuk aktivasi hadiah nyata di aplikasi belanja, Product/Legal meninjau aturan promosi Indonesia dan kebijakan toko sesuai mekanisme final. Di iOS siapkan ketentuan resmi di dalam aplikasi, penyelenggara dan pernyataan bahwa Apple tidak mensponsori promosi. [Apple §5.3](https://developer.apple.com/app-store/review/guidelines/#gaming-gambling-and-lotteries) · [Kebijakan Google Play](https://support.google.com/googleplay/android-developer/answer/9877032)
+## 3. Komponen Visual & Aksesibilitas
+1. **Roda Putar (Wheel Dial)**:
+   - Dibuat menggunakan `CustomPainter` dengan pembagian sektor proporsional terhadap peluang hadiah.
+   - Jarum penunjuk di bagian atas dengan warna Plum `#4B1C2E`.
+2. **Animasi & Reduce Motion**:
+   - Animasi rotasi halus dengan kurva `Curves.easeOutCubic` selama ~1 detik.
+   - Jika pengguna mengaktifkan mode *Reduce Motion* di pengaturan perangkat, durasi animasi otomatis menjadi `Duration.zero` dan langsung menampilkan hasil.
+3. **Tombol CTA**:
+   - Jika hari Sabtu & belum putar: *"Putar gratis"* (Aktif, Berry `#982149`).
+   - Jika sudah memutar hari ini: *"Putaran sudah digunakan"* (Disabled).
+   - Jika bukan hari Sabtu: *"Kembali pada Sabtu"* (Disabled).
+4. **Hasil Putaran Terakhir**:
+   - Menampilkan teks hasil klaim yang tetap tersimpan meskipun dialog/animasi ditutup.
+   - Didukung `Semantics(liveRegion: true)` untuk pembaca layar.
+
+---
+
+## 4. Kepatuhan Toko Aplikasi (App Store & Play Store)
+- **Apple App Store Review Guidelines §5.3**:
+  - Putaran roulette **100% gratis** dan tidak memerlukan pembelian apa pun.
+  - S&K mencantumkan penegasan resmi: *"Apple Inc. bukan sponsor dan tidak terlibat dalam kegiatan promosi ini."*
+- **Google Play Developer Policy**:
+  - Peluang probabilitas dan jumlah kuota stok ditampilkan secara transparan sebelum pengguna berpartisipasi.
+
+---
+
+## 5. Kontrak API Backend
+- Endpoint: `POST /v1/spin/commit`
+- Header: `Authorization: Bearer <token>`, `Idempotency-Key: <uuid>`
+- Respons Sukses (200 OK):
+  ```json
+  {
+    "receiptId": "spn-9821a",
+    "prizeType": "kelopak",
+    "prizeLabel": "3 Kelopak",
+    "awardedKelopak": 3,
+    "newBalance": 13,
+    "remainingStock": 1
+  }
+  ```
+- Error Bukan Hari Sabtu / Promo Tutup (422 Unprocessable):
+  ```json
+  {
+    "error": "not_eligible",
+    "message": "Roda hanya tersedia pada hari Sabtu WIB selama periode promo."
+  }
+  ```
+
+---
+
+## 6. Pengujian Mutu (Test Scenarios)
+1. Hari Sabtu WIB mengaktifkan ketersediaan roda; hari lain menonaktifkannya.
+2. Putaran roda menghasilkan penambahan 3 Kelopak atau hak produk sesuai RNG server.
+3. Stok produk 0 otomatis mengalihkan peluang 100% ke Kelopak.
+4. Akun yang sudah memutar pada Sabtu yang sama ditolak jika mencoba memutar kedua kalinya.
