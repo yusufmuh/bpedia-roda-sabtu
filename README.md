@@ -53,7 +53,8 @@ SaturdayWheel(
   skipAnimation: userTappedSkip,           // tombol "Lewati animasi"
   onPegPassed: playTick,                   // maks. 1x per 45 ms
   onSettled: showResultCard,               // tepat sekali per putaran
-  centerChild: Image.asset('assets/bipy_hai.png', fit: BoxFit.cover),
+  idleSemanticsValue: canSpin ? 'Siap diputar' : 'Buka Sabtu, 5 Des',
+  centerChild: Image.asset('assets/images/bipy_senyum.webp', fit: BoxFit.cover),
 );
 OddsTable(
   odds: odds,
@@ -69,6 +70,7 @@ OddsTable(
 - Kurangi gerakan sistem atau `skipAnimation: true` (juga di tengah putaran) → langsung ke hasil, `onSettled` sekali di frame berikutnya.
 - Build pertama dengan hasil → diam di hasil, tanpa animasi dan tanpa `onSettled`.
 - Menang produk terakhir (stok jadi 0) → roda tetap menampilkan tata letak sebelum putaran selama hasil itu tampil. Setelah app dibuka ulang, kirim `odds` dengan stok sebelum putaran agar segmen produk tetap ada.
+- Pembaca layar mendengar "Roda Sabtu" dengan nilai "Sedang berputar", "Hasil: …", atau `idleSemanticsValue` saat belum ada hasil. Roda tidak tahu kelayakan putaran, jadi host mengisi "Siap diputar" hanya bila putaran tersedia.
 - Semua warna dan teks dari `Theme.of(context)`.
 
 ## Pengembangan

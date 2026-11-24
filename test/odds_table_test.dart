@@ -91,6 +91,37 @@ void main() {
     handle.dispose();
   });
 
+  testWidgets('heading and footnote stay separate from the page around them', (
+    WidgetTester tester,
+  ) async {
+    final SemanticsHandle handle = tester.ensureSemantics();
+    const String note =
+        'Hasil ditentukan sistem secara acak sesuai peluang di atas.';
+    // A list item is a semantics container (IndexedSemantics in a ListView):
+    // loose text inside it becomes the item's own label.
+    await tester.pumpWidget(
+      harness(
+        Semantics(
+          container: true,
+          child: Column(
+            children: <Widget>[
+              const Text('Buka Sabtu, 5 Des · 00.00 WIB'),
+              table(1),
+              const Text('Tombol aktif Sabtu, 5 Des · 00.00 WIB.'),
+            ],
+          ),
+        ),
+      ),
+    );
+    final SemanticsNode heading = tester.getSemantics(
+      find.text('Peluang & ketentuan'),
+    );
+    expect(heading, isSemantics(label: 'Peluang & ketentuan', isHeader: true));
+    expect(heading.childrenCount, 0);
+    expect(tester.getSemantics(find.text(note)), isSemantics(label: note));
+    handle.dispose();
+  });
+
   testWidgets('wheel and table fit 360x740 at 200% text without overflow', (
     WidgetTester tester,
   ) async {

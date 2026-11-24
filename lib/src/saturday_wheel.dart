@@ -29,6 +29,11 @@ const IconData _productGlyph = Icons.redeem;
 /// While a result is shown, pass the odds that were in effect when it was
 /// drawn (for example computed with the stock before the spin), so the
 /// winning segment exists after the app restarts.
+///
+/// Screen readers hear "Roda Sabtu" with the state as value: "Sedang
+/// berputar", "Hasil: …", or [idleSemanticsValue] while no result is shown.
+/// The wheel does not know whether a spin is allowed, so the host passes the
+/// idle state ("Siap diputar" only when the spin is really available).
 class SaturdayWheel extends StatefulWidget {
   const SaturdayWheel({
     super.key,
@@ -41,6 +46,7 @@ class SaturdayWheel extends StatefulWidget {
     this.centerChild,
     this.skipAnimation = false,
     this.duration = const Duration(milliseconds: 4200),
+    this.idleSemanticsValue,
   });
 
   final List<SpinOdds> odds;
@@ -62,6 +68,10 @@ class SaturdayWheel extends StatefulWidget {
   /// When true (also mid-spin) the wheel jumps to the result.
   final bool skipAnimation;
   final Duration duration;
+
+  /// Semantics value while no result is shown, e.g. "Siap diputar" or
+  /// "Buka Sabtu, 5 Des". Null announces no state.
+  final String? idleSemanticsValue;
 
   @override
   State<SaturdayWheel> createState() => _SaturdayWheelState();
@@ -240,7 +250,7 @@ class _SaturdayWheelState extends State<SaturdayWheel>
   String _semanticsValue() {
     if (_spinning) return 'Sedang berputar';
     final String? prizeId = widget.resultPrizeId;
-    if (prizeId == null) return 'Siap diputar';
+    if (prizeId == null) return widget.idleSemanticsValue ?? '';
     final String? label = _labelFor(prizeId);
     return label == null ? 'Sudah diputar' : 'Hasil: $label';
   }

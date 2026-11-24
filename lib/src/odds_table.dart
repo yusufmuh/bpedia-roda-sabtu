@@ -4,7 +4,9 @@ import 'format.dart';
 import 'spin_engine.dart';
 
 /// Odds, remaining product quota and the shipping rule, shown before the
-/// spin button. Each row is read as one item by screen readers.
+/// spin button. Screen readers get the title as its own heading, each row as
+/// one item and the footnote as its own item, so nothing is merged into the
+/// heading of the page around it.
 class OddsTable extends StatelessWidget {
   const OddsTable({
     super.key,
@@ -35,6 +37,7 @@ class OddsTable extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
             Semantics(
+              container: true,
               header: true,
               child: Text(
                 'Peluang & ketentuan',
@@ -53,10 +56,13 @@ class OddsTable extends StatelessWidget {
               detail: shippingNote,
             ),
             const SizedBox(height: 8),
-            Text(
-              'Hasil ditentukan sistem secara acak sesuai peluang di atas.',
-              style: textTheme.bodySmall?.copyWith(
-                color: scheme.onSurfaceVariant,
+            Semantics(
+              container: true,
+              child: Text(
+                'Hasil ditentukan sistem secara acak sesuai peluang di atas.',
+                style: textTheme.bodySmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
               ),
             ),
           ],

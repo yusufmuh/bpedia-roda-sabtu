@@ -20,6 +20,7 @@ Widget wheel(
   List<SpinOdds>? odds,
   bool skipAnimation = false,
   int landingSeed = 7331,
+  String? idle,
 }) {
   return SaturdayWheel(
     odds: odds ?? effectiveOdds(demoSpinConfig, productStock: 1),
@@ -29,6 +30,7 @@ Widget wheel(
     skipAnimation: skipAnimation,
     onSettled: () => log.settled++,
     onPegPassed: () => log.pegs++,
+    idleSemanticsValue: idle,
   );
 }
 
@@ -101,7 +103,9 @@ void main() {
   ) async {
     final SemanticsHandle handle = tester.ensureSemantics();
     final SpinLog log = SpinLog();
-    await tester.pumpWidget(harness(wheel(log, token: 0)));
+    await tester.pumpWidget(
+      harness(wheel(log, token: 0, idle: 'Siap diputar')),
+    );
     expect(
       wheelSemantics(tester),
       isSemantics(label: 'Roda Sabtu', value: 'Siap diputar'),
@@ -116,6 +120,40 @@ void main() {
     await tester.pump(spinDuration + frame);
     await tester.pump();
     expect(log.settled, 1);
+    expect(
+      wheelSemantics(tester),
+      isSemantics(label: 'Roda Sabtu', value: 'Hasil: 3 Kelopak'),
+    );
+    handle.dispose();
+  });
+
+  testWidgets('idle semantics come from the host, never a default '
+      '"Siap diputar"', (WidgetTester tester) async {
+    final SemanticsHandle handle = tester.ensureSemantics();
+    final SpinLog log = SpinLog();
+    await tester.pumpWidget(harness(wheel(log, token: 0)));
+    final SemanticsNode unknown = wheelSemantics(tester);
+    expect(unknown.label, 'Roda Sabtu');
+    expect(unknown.value, isNot('Siap diputar'));
+    expect(unknown.value, isEmpty);
+
+    for (final String closed in <String>[
+      'Buka Sabtu, 5 Des',
+      'Promo sedang tidak aktif',
+      'Sudah diputar Sabtu ini',
+    ]) {
+      await tester.pumpWidget(harness(wheel(log, token: 0, idle: closed)));
+      expect(
+        wheelSemantics(tester),
+        isSemantics(label: 'Roda Sabtu', value: closed),
+      );
+    }
+
+    await tester.pumpWidget(
+      harness(wheel(log, token: 1, result: 'kelopak-3', idle: 'Siap diputar')),
+    );
+    await tester.pump(spinDuration + frame);
+    await tester.pump();
     expect(
       wheelSemantics(tester),
       isSemantics(label: 'Roda Sabtu', value: 'Hasil: 3 Kelopak'),

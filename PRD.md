@@ -90,7 +90,7 @@ Performa: wajah roda direkam sekali sebagai `Picture` (dibuat ulang hanya bila u
 
 ## 6. Aksesibilitas
 
-- Roda: node Semantics "Roda Sabtu" dengan nilai "Siap diputar", "Sedang berputar", atau "Hasil: 3 Kelopak".
+- Roda: node Semantics "Roda Sabtu" dengan nilai "Sedang berputar", "Hasil: 3 Kelopak", atau `idleSemanticsValue` dari host saat belum ada hasil. Roda tidak tahu kelayakan putaran, jadi host yang mengisi nilai diam: "Siap diputar" hanya bila putaran memang tersedia, selain itu mis. "Buka Sabtu, 5 Des" atau "Promo sedang tidak aktif". Tanpa nilai dari host, roda tidak menyebut status apa pun.
 - `OddsTable`: judul sebagai header; tiap baris dibaca sebagai satu item ("Produk gratis, Sisa kuota: 1, 10%").
 - Teks mengikuti skala sistem; layar 360×740 dengan teks 200% tanpa overflow (teruji).
 - Status tidak hanya warna: kuota dan hasil selalu berupa teks.
