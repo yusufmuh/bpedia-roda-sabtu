@@ -137,11 +137,12 @@ void main() {
           padding: const EdgeInsets.all(16),
           child: Column(
             children: <Widget>[
-              SaturdayWheel(
+              PrizeWheel(
                 odds: odds,
                 resultPrizeId: 'kelopak-3',
                 spinToken: 0,
                 landingSeed: 5,
+                ambientMotion: false,
               ),
               const SizedBox(height: 16),
               OddsTable(
@@ -162,13 +163,17 @@ void main() {
     );
     expect(percent.textScaler, const TextScaler.linear(2));
     expect(
-      tester.getSize(
-        find.descendant(
-          of: find.byType(SaturdayWheel),
-          matching: find.byType(Stack),
-        ),
-      ),
-      const Size(320, 320),
+      tester
+          .getSize(
+            find
+                .descendant(
+                  of: find.byType(PrizeWheel),
+                  matching: find.byType(Stack),
+                )
+                .first,
+          )
+          .width,
+      328,
     );
   });
 

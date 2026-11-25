@@ -1,6 +1,9 @@
 name: roda_sabtu
-description: Modul Roda Sabtu untuk Bpedia Preview. Satu putaran gratis tiap Sabtu WIB dengan peluang, kuota, dan ongkir tampil sebelum memutar.
-version: 2.0.0
+description: >-
+  Roda Sabtu untuk Bpedia Demo v3. Aturan murni putaran gratis tiap Sabtu WIB
+  (peluang, kuota produk, hadiah cadangan, irisan roda) dan halaman game siap
+  pakai: roda 3D mengilap, lampu tepi, Bipy bergerak, lembar hasil.
+version: 3.0.0
 publish_to: none
 
 environment:
@@ -18,3 +21,7 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/bipy/
+    - assets/art/
+    - assets/fx/
