@@ -1,11 +1,13 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
 import 'spin_engine.dart';
 import 'wheel_geometry.dart';
+import 'wheel_slices.dart';
 
 const double _maxWheelSide = 320;
 const double _radiusFactor = 0.45;
@@ -85,6 +87,7 @@ class _SaturdayWheelState extends State<SaturdayWheel>
   late final AnimationController _rotation;
   final _WheelArtwork _artwork = _WheelArtwork();
   late WheelGeometry _geometry;
+  final Map<String, SpinPrize> _prizes = <String, SpinPrize>{};
   bool _systemReduceMotion = false;
   bool _spinning = false;
   bool _settleScheduled = false;
@@ -104,6 +107,7 @@ class _SaturdayWheelState extends State<SaturdayWheel>
     _rotation = AnimationController.unbounded(vsync: this)
       ..addListener(_handleRotation)
       ..addStatusListener(_handleRotationStatus);
+    _rememberPrizes();
     _geometry = WheelGeometry.fromOdds(widget.odds);
     _rest();
   }
@@ -149,7 +153,14 @@ class _SaturdayWheelState extends State<SaturdayWheel>
     super.dispose();
   }
 
+  void _rememberPrizes() {
+    for (final SpinOdds entry in widget.odds) {
+      _prizes[entry.prize.id] = entry.prize;
+    }
+  }
+
   bool _syncGeometry() {
+    _rememberPrizes();
     final WheelGeometry next = WheelGeometry.retainResult(
       current: _geometry,
       next: WheelGeometry.fromOdds(widget.odds),
@@ -259,10 +270,7 @@ class _SaturdayWheelState extends State<SaturdayWheel>
     for (final SpinOdds entry in widget.odds) {
       if (entry.prize.id == prizeId) return entry.prize.label;
     }
-    for (final WheelSegment segment in _geometry.segments) {
-      if (segment.prize.id == prizeId) return segment.prize.label;
-    }
-    return null;
+    return _prizes[prizeId]?.label;
   }
 
   static double _sideFor(BoxConstraints constraints) {
@@ -328,7 +336,7 @@ class _SaturdayWheelState extends State<SaturdayWheel>
                       child: CustomPaint(
                         painter: _WheelPainter(
                           rotation: _rotation,
-                          geometry: _geometry,
+                          segments: _faceSegments(_geometry, _prizes),
                           style: style,
                           artwork: _artwork,
                         ),
@@ -461,16 +469,16 @@ final class _WheelStyle {
   final TextScaler textScaler;
   final TextDirection textDirection;
 
-  Color fillFor(SegmentTone tone) => switch (tone) {
-    SegmentTone.product => productFill,
-    SegmentTone.primary => primaryFill,
-    SegmentTone.secondary => secondaryFill,
+  Color fillFor(_SegmentTone tone) => switch (tone) {
+    _SegmentTone.product => productFill,
+    _SegmentTone.primary => primaryFill,
+    _SegmentTone.secondary => secondaryFill,
   };
 
-  Color inkFor(SegmentTone tone) => switch (tone) {
-    SegmentTone.product => productInk,
-    SegmentTone.primary => primaryInk,
-    SegmentTone.secondary => secondaryInk,
+  Color inkFor(_SegmentTone tone) => switch (tone) {
+    _SegmentTone.product => productInk,
+    _SegmentTone.primary => primaryInk,
+    _SegmentTone.secondary => secondaryInk,
   };
 
   @override
@@ -506,29 +514,93 @@ final class _WheelStyle {
   );
 }
 
+enum _SegmentTone { product, primary, secondary }
+
+/// Irisan roda siap lukis: sudut dari [WheelSlice], hadiah, dan warna.
+/// Irisan Kelopak berselang dua warna; irisan produk punya warna sendiri.
+@immutable
+final class _FaceSegment {
+  const _FaceSegment({
+    required this.prize,
+    required this.start,
+    required this.sweep,
+    required this.tone,
+  });
+
+  final SpinPrize prize;
+  final double start;
+  final double sweep;
+  final _SegmentTone tone;
+
+  @override
+  bool operator ==(Object other) =>
+      other is _FaceSegment &&
+      other.prize == prize &&
+      other.start == start &&
+      other.sweep == sweep &&
+      other.tone == tone;
+
+  @override
+  int get hashCode => Object.hash(prize, start, sweep, tone);
+}
+
+List<_FaceSegment> _faceSegments(
+  WheelGeometry geometry,
+  Map<String, SpinPrize> prizes,
+) {
+  final List<_FaceSegment> segments = <_FaceSegment>[];
+  int kelopakPieces = 0;
+  for (final WheelSlice slice in geometry.slices) {
+    final SpinPrize? prize = prizes[slice.prizeId];
+    if (prize == null) continue;
+    final _SegmentTone tone;
+    if (prize.kind == PrizeKind.product) {
+      tone = _SegmentTone.product;
+    } else {
+      tone = kelopakPieces.isEven
+          ? _SegmentTone.primary
+          : _SegmentTone.secondary;
+      kelopakPieces++;
+    }
+    segments.add(
+      _FaceSegment(
+        prize: prize,
+        start: slice.startRadians,
+        sweep: slice.sweepRadians,
+        tone: tone,
+      ),
+    );
+  }
+  return segments;
+}
+
 /// Caches the wheel face as a picture so each animation frame is a single
 /// rotated draw instead of re-laying out every label.
 final class _WheelArtwork {
   ui.Picture? _picture;
   Size _size = Size.zero;
-  WheelGeometry? _geometry;
+  List<_FaceSegment>? _segments;
   _WheelStyle? _style;
 
-  ui.Picture resolve(Size size, WheelGeometry geometry, _WheelStyle style) {
+  ui.Picture resolve(
+    Size size,
+    List<_FaceSegment> segments,
+    _WheelStyle style,
+  ) {
     final ui.Picture? cached = _picture;
     if (cached != null &&
         size == _size &&
-        geometry == _geometry &&
+        listEquals(segments, _segments) &&
         style == _style) {
       return cached;
     }
     final ui.PictureRecorder recorder = ui.PictureRecorder();
-    _paintWheelFace(Canvas(recorder), _WheelMetrics.of(size), geometry, style);
+    _paintWheelFace(Canvas(recorder), _WheelMetrics.of(size), segments, style);
     final ui.Picture picture = recorder.endRecording();
     cached?.dispose();
     _picture = picture;
     _size = size;
-    _geometry = geometry;
+    _segments = segments;
     _style = style;
     return picture;
   }
@@ -542,20 +614,20 @@ final class _WheelArtwork {
 class _WheelPainter extends CustomPainter {
   const _WheelPainter({
     required this.rotation,
-    required this.geometry,
+    required this.segments,
     required this.style,
     required this.artwork,
   }) : super(repaint: rotation);
 
   final Animation<double> rotation;
-  final WheelGeometry geometry;
+  final List<_FaceSegment> segments;
   final _WheelStyle style;
   final _WheelArtwork artwork;
 
   @override
   void paint(Canvas canvas, Size size) {
     if (size.isEmpty) return;
-    final ui.Picture picture = artwork.resolve(size, geometry, style);
+    final ui.Picture picture = artwork.resolve(size, segments, style);
     final Offset center = size.center(Offset.zero);
     canvas
       ..save()
@@ -569,7 +641,7 @@ class _WheelPainter extends CustomPainter {
   @override
   bool shouldRepaint(_WheelPainter oldDelegate) =>
       oldDelegate.rotation != rotation ||
-      oldDelegate.geometry != geometry ||
+      !listEquals(oldDelegate.segments, segments) ||
       oldDelegate.style != style ||
       oldDelegate.artwork != artwork;
 }
@@ -625,14 +697,13 @@ Offset _outward(double wheelAngle) =>
 void _paintWheelFace(
   Canvas canvas,
   _WheelMetrics metrics,
-  WheelGeometry geometry,
+  List<_FaceSegment> segments,
   _WheelStyle style,
 ) {
   final Offset center = metrics.center;
-  final List<WheelSegment> segments = geometry.segments;
   final Rect disc = Rect.fromCircle(center: center, radius: metrics.radius);
   canvas.drawCircle(center, metrics.radius, Paint()..color = style.primaryFill);
-  for (final WheelSegment segment in segments) {
+  for (final _FaceSegment segment in segments) {
     canvas.drawArc(
       disc,
       segment.start - math.pi / 2,
@@ -647,7 +718,7 @@ void _paintWheelFace(
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.2;
     final double reach = metrics.radius - metrics.rimWidth;
-    for (final WheelSegment segment in segments) {
+    for (final _FaceSegment segment in segments) {
       canvas.drawLine(
         center,
         center + _outward(segment.start) * reach,
@@ -655,7 +726,7 @@ void _paintWheelFace(
       );
     }
   }
-  for (final WheelSegment segment in segments) {
+  for (final _FaceSegment segment in segments) {
     _paintSegmentContent(canvas, metrics, segment, style);
   }
   canvas.drawCircle(
@@ -669,7 +740,7 @@ void _paintWheelFace(
   if (segments.length > 1) {
     final Paint peg = Paint()..color = style.peg;
     final double pegDistance = metrics.radius - metrics.rimWidth / 2;
-    for (final WheelSegment segment in segments) {
+    for (final _FaceSegment segment in segments) {
       canvas.drawCircle(
         center + _outward(segment.start) * pegDistance,
         metrics.pegRadius,
@@ -682,7 +753,7 @@ void _paintWheelFace(
 void _paintSegmentContent(
   Canvas canvas,
   _WheelMetrics metrics,
-  WheelSegment segment,
+  _FaceSegment segment,
   _WheelStyle style,
 ) {
   final double bisector = segment.start + segment.sweep / 2 - math.pi / 2;

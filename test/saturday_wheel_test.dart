@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:roda_sabtu/roda_sabtu.dart';
 
 import 'support/harness.dart';
+import 'support/v2_fixtures.dart';
 
 const Duration spinDuration = Duration(milliseconds: 4200);
 const Duration frame = Duration(milliseconds: 16);
@@ -23,7 +24,7 @@ Widget wheel(
   String? idle,
 }) {
   return SaturdayWheel(
-    odds: odds ?? effectiveOdds(demoSpinConfig, productStock: 1),
+    odds: odds ?? effectiveOdds(v2SpinConfig, productStock: 1),
     resultPrizeId: result,
     spinToken: token,
     landingSeed: landingSeed,
@@ -75,7 +76,7 @@ void main() {
     Duration now = Duration.zero;
     Widget build(int token, String? result) => harness(
       SaturdayWheel(
-        odds: effectiveOdds(demoSpinConfig, productStock: 1),
+        odds: effectiveOdds(v2SpinConfig, productStock: 1),
         resultPrizeId: result,
         spinToken: token,
         landingSeed: 99,
@@ -193,9 +194,7 @@ void main() {
           log,
           token: 1,
           result: 'kelopak-3',
-          odds: List<SpinOdds>.of(
-            effectiveOdds(demoSpinConfig, productStock: 1),
-          ),
+          odds: List<SpinOdds>.of(effectiveOdds(v2SpinConfig, productStock: 1)),
         ),
       ),
     );
@@ -329,7 +328,7 @@ void main() {
           log,
           token: 1,
           result: 'product',
-          odds: effectiveOdds(demoSpinConfig, productStock: 0),
+          odds: effectiveOdds(v2SpinConfig, productStock: 0),
         ),
       ),
     );
@@ -371,7 +370,7 @@ void main() {
     await tester.pumpWidget(
       harness(
         SaturdayWheel(
-          odds: effectiveOdds(demoSpinConfig, productStock: 1),
+          odds: effectiveOdds(v2SpinConfig, productStock: 1),
           resultPrizeId: null,
           spinToken: 0,
           landingSeed: 1,

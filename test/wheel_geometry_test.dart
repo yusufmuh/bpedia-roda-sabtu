@@ -1,146 +1,15 @@
-import 'dart:math' as math;
-
 import 'package:flutter_test/flutter_test.dart';
 import 'package:roda_sabtu/roda_sabtu.dart';
 import 'package:roda_sabtu/src/wheel_geometry.dart';
 
+import 'support/v2_fixtures.dart';
+
 const double epsilon = 1e-9;
 
-SpinOdds kelopakOdds(String id, int weight) => SpinOdds(
-  prize: SpinPrize(
-    id: id,
-    kind: PrizeKind.kelopak,
-    label: id,
-    kelopak: 1,
-    weight: weight,
-  ),
-  weight: weight,
-);
-
-SpinOdds productOdds(String id, int weight) => SpinOdds(
-  prize: SpinPrize(
-    id: id,
-    kind: PrizeKind.product,
-    label: id,
-    kelopak: 0,
-    weight: weight,
-  ),
-  weight: weight,
-);
-
-void expectNoAdjacentKelopakTone(WheelGeometry geometry) {
-  final List<WheelSegment> segments = geometry.segments;
-  for (int i = 0; i < segments.length; i++) {
-    final WheelSegment current = segments[i];
-    final WheelSegment next = segments[(i + 1) % segments.length];
-    if (current.tone == SegmentTone.product) continue;
-    expect(
-      next.tone,
-      isNot(current.tone),
-      reason: 'segments $i and ${(i + 1) % segments.length} share a tone',
-    );
-  }
-}
-
 void main() {
-  final List<List<SpinOdds>> layouts = <List<SpinOdds>>[
-    effectiveOdds(demoSpinConfig, productStock: 1),
-    effectiveOdds(demoSpinConfig, productStock: 0),
-    <SpinOdds>[kelopakOdds('a', 7000), kelopakOdds('b', 3000)],
-    <SpinOdds>[
-      kelopakOdds('a', 4000),
-      productOdds('p', 1000),
-      kelopakOdds('b', 5000),
-    ],
-    <SpinOdds>[
-      productOdds('p', 3000),
-      kelopakOdds('a', 2000),
-      kelopakOdds('b', 5000),
-    ],
-  ];
-
-  group('WheelGeometry.fromOdds', () {
-    test('demo odds: one product slice and four 81 degree Kelopak slices', () {
-      final WheelGeometry geometry = WheelGeometry.fromOdds(
-        effectiveOdds(demoSpinConfig, productStock: 1),
-      );
-      final List<WheelSegment> segments = geometry.segments;
-      expect(segments, hasLength(5));
-      expect(segments.first.prize.id, 'product');
-      expect(segments.first.tone, SegmentTone.product);
-      expect(segments.first.sweep, closeTo(fullTurn * 0.1, epsilon));
-      for (final WheelSegment segment in segments.skip(1)) {
-        expect(segment.prize.id, 'kelopak-3');
-        expect(segment.sweep, closeTo(81 * math.pi / 180, epsilon));
-      }
-    });
-
-    test('stock 0 skips the zero-weight product', () {
-      final WheelGeometry geometry = WheelGeometry.fromOdds(
-        effectiveOdds(demoSpinConfig, productStock: 0),
-      );
-      expect(geometry.contains('product'), isFalse);
-      expect(geometry.segments, hasLength(4));
-      for (final WheelSegment segment in geometry.segments) {
-        expect(segment.sweep, closeTo(math.pi / 2, epsilon));
-      }
-    });
-
-    for (int i = 0; i < layouts.length; i++) {
-      test('layout $i: proportional, gap-free, at most 90 degrees', () {
-        final List<SpinOdds> odds = layouts[i];
-        final WheelGeometry geometry = WheelGeometry.fromOdds(odds);
-        final List<WheelSegment> segments = geometry.segments;
-        final int total = odds.fold<int>(
-          0,
-          (int sum, SpinOdds e) => sum + e.weight,
-        );
-        expect(segments.first.start, 0);
-        expect(segments.last.end, closeTo(fullTurn, epsilon));
-        for (int s = 1; s < segments.length; s++) {
-          expect(segments[s].start, closeTo(segments[s - 1].end, epsilon));
-        }
-        for (final WheelSegment segment in segments) {
-          expect(segment.sweep, lessThanOrEqualTo(math.pi / 2 + epsilon));
-        }
-        for (final SpinOdds entry in odds) {
-          final double area = segments
-              .where((WheelSegment s) => s.prize.id == entry.prize.id)
-              .fold<double>(0, (double sum, WheelSegment s) => sum + s.sweep);
-          expect(area, closeTo(fullTurn * entry.weight / total, epsilon));
-        }
-        expectNoAdjacentKelopakTone(geometry);
-      });
-    }
-
-    test('balances an odd Kelopak count across the seam', () {
-      final WheelGeometry geometry = WheelGeometry.fromOdds(<SpinOdds>[
-        kelopakOdds('a', 7000),
-        kelopakOdds('b', 3000),
-      ]);
-      expect(geometry.segments.length.isEven, isTrue);
-      expectNoAdjacentKelopakTone(geometry);
-    });
-
-    test('empty or all-zero odds produce no segments', () {
-      expect(WheelGeometry.fromOdds(const <SpinOdds>[]).segments, isEmpty);
-      expect(
-        WheelGeometry.fromOdds(<SpinOdds>[kelopakOdds('a', 0)]).segments,
-        isEmpty,
-      );
-    });
-
-    test('equal odds give equal geometry', () {
-      expect(
-        WheelGeometry.fromOdds(effectiveOdds(demoSpinConfig, productStock: 1)),
-        WheelGeometry.fromOdds(effectiveOdds(demoSpinConfig, productStock: 3)),
-      );
-    });
-  });
-
   group('landing', () {
     final WheelGeometry geometry = WheelGeometry.fromOdds(
-      effectiveOdds(demoSpinConfig, productStock: 1),
+      effectiveOdds(v2SpinConfig, productStock: 1),
     );
 
     test('rest rotation puts the result under the pointer, 15-85% in', () {
@@ -148,10 +17,11 @@ void main() {
         for (int seed = -50; seed < 400; seed++) {
           final double rest = geometry.restRotationFor(prizeId, seed)!;
           expect(rest, inInclusiveRange(0, fullTurn));
-          final WheelSegment under = geometry.segmentUnderPointer(rest)!;
-          expect(under.prize.id, prizeId, reason: 'seed $seed');
+          final WheelSlice under = geometry.sliceUnderPointer(rest)!;
+          expect(under.prizeId, prizeId, reason: 'seed $seed');
           final double point = normalizeAngle(-rest);
-          final double fraction = (point - under.start) / under.sweep;
+          final double fraction =
+              (point - under.startRadians) / under.sweepRadians;
           expect(fraction, inInclusiveRange(0.15 - 1e-6, 0.85 + 1e-6));
         }
       }
@@ -165,12 +35,10 @@ void main() {
       final Set<double> starts = <double>{
         for (int seed = 0; seed < 8; seed++)
           geometry
-              .segmentUnderPointer(
-                geometry.restRotationFor('kelopak-3', seed)!,
-              )!
-              .start,
+              .sliceUnderPointer(geometry.restRotationFor('kelopak-3', seed)!)!
+              .startDeg,
       };
-      expect(starts, hasLength(4));
+      expect(starts, hasLength(6));
     });
 
     test('spin end adds five turns and stops on the rest rotation', () {
@@ -183,7 +51,7 @@ void main() {
         );
         expect(end - from, greaterThanOrEqualTo(5 * fullTurn - epsilon));
         expect(end - from, lessThan(6 * fullTurn + epsilon));
-        expect(geometry.segmentUnderPointer(end)!.prize.id, 'product');
+        expect(geometry.sliceUnderPointer(end)!.prizeId, 'product');
         final double rest = geometry.restRotationFor('product', 1234)!;
         expect(
           normalizeAngle(end - rest),
@@ -206,20 +74,20 @@ void main() {
     });
 
     test('idle rotation centers the first segment under the pointer', () {
-      final WheelSegment first = geometry.segments.first;
+      final WheelSlice first = geometry.slices.first;
       final double idle = geometry.idleRotation;
       expect(
         normalizeAngle(-idle),
-        closeTo(first.start + first.sweep / 2, epsilon),
+        closeTo(first.startRadians + first.sweepRadians / 2, epsilon),
       );
-      expect(geometry.segmentUnderPointer(idle), same(first));
+      expect(geometry.sliceUnderPointer(idle), same(first));
       expect(WheelGeometry.fromOdds(const <SpinOdds>[]).idleRotation, 0);
     });
   });
 
   group('pegCrossed', () {
     final WheelGeometry geometry = WheelGeometry.fromOdds(
-      effectiveOdds(demoSpinConfig, productStock: 1),
+      effectiveOdds(v2SpinConfig, productStock: 1),
     );
 
     test('detects a boundary passing the pointer', () {
@@ -240,10 +108,10 @@ void main() {
 
   group('retainResult', () {
     final WheelGeometry withProduct = WheelGeometry.fromOdds(
-      effectiveOdds(demoSpinConfig, productStock: 1),
+      effectiveOdds(v2SpinConfig, productStock: 1),
     );
     final WheelGeometry soldOut = WheelGeometry.fromOdds(
-      effectiveOdds(demoSpinConfig, productStock: 0),
+      effectiveOdds(v2SpinConfig, productStock: 0),
     );
 
     test('keeps the layout that still shows a just-won product', () {
@@ -275,5 +143,99 @@ void main() {
         same(soldOut),
       );
     });
+  });
+
+  group('geometri roda v3 (demoSpinConfig)', () {
+    final WheelGeometry geometry = WheelGeometry.fromConfig(
+      demoSpinConfig,
+      productQuotaLeft: 3,
+    );
+
+    test('fromConfig memakai irisan buildWheelSlices', () {
+      expect(
+        geometry.slices,
+        buildWheelSlices(demoSpinConfig, productQuotaLeft: 3),
+      );
+      expect(
+        geometry,
+        WheelGeometry.fromOdds(
+          effectiveOdds(demoSpinConfig, productStock: 3),
+          layout: demoSpinConfig.wheelLayout,
+        ),
+      );
+      expect(
+        geometry,
+        isNot(WheelGeometry.fromConfig(demoSpinConfig, productQuotaLeft: 0)),
+      );
+    });
+
+    test('tiap hadiah mendarat di irisannya sendiri untuk semua benih', () {
+      for (final SpinPrize prize in demoSpinConfig.prizes) {
+        for (int seed = -20; seed < 3200; seed += 7) {
+          final double rest = geometry.restRotationFor(prize.id, seed)!;
+          final WheelSlice under = geometry.sliceUnderPointer(rest)!;
+          expect(under.prizeId, prize.id, reason: 'benih $seed');
+          final double fraction =
+              (normalizeAngle(-rest) - under.startRadians) / under.sweepRadians;
+          expect(fraction, inInclusiveRange(0.15 - 1e-6, 0.85 + 1e-6));
+        }
+      }
+    });
+
+    test('benih menyebar ke ketiga irisan 1 Kelopak', () {
+      final Set<int> landed = <int>{
+        for (int seed = 0; seed < 3; seed++)
+          geometry
+              .sliceUnderPointer(geometry.restRotationFor('kelopak-1', seed)!)!
+              .index,
+      };
+      expect(landed, <int>{1, 3, 7});
+    });
+
+    test('roda diam menaruh irisan produk di bawah penunjuk', () {
+      final WheelSlice idle = geometry.sliceUnderPointer(
+        geometry.idleRotation,
+      )!;
+      expect(idle.prizeId, 'product');
+      expect(idle.index, 0);
+    });
+
+    test('pasak terlewati di tiap batas irisan dalam satu putaran', () {
+      int pegs = 0;
+      const int steps = 3600;
+      for (int i = 0; i < steps; i++) {
+        final double from = 0.0005 + fullTurn * i / steps;
+        final double to = 0.0005 + fullTurn * (i + 1) / steps;
+        if (geometry.pegCrossed(from, to)) pegs++;
+      }
+      expect(pegs, geometry.slices.length);
+    });
+
+    test(
+      'kuota habis setelah menang produk: tata letak lama dipertahankan',
+      () {
+        final WheelGeometry soldOut = WheelGeometry.fromConfig(
+          demoSpinConfig,
+          productQuotaLeft: 0,
+        );
+        expect(soldOut.contains('product'), isFalse);
+        expect(
+          WheelGeometry.retainResult(
+            current: geometry,
+            next: soldOut,
+            resultPrizeId: 'product',
+          ),
+          same(geometry),
+        );
+        expect(
+          WheelGeometry.retainResult(
+            current: geometry,
+            next: soldOut,
+            resultPrizeId: 'kelopak-1',
+          ),
+          same(soldOut),
+        );
+      },
+    );
   });
 }

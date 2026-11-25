@@ -4,8 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:roda_sabtu/roda_sabtu.dart';
 
 import 'support/harness.dart';
+import 'support/v2_fixtures.dart';
 
-Widget table(int stock, {SpinConfig config = demoSpinConfig}) => OddsTable(
+Widget table(int stock, {SpinConfig config = v2SpinConfig}) => OddsTable(
   odds: effectiveOdds(config, productStock: stock),
   productStock: stock,
   shippingNote: config.shippingNote,
@@ -129,7 +130,7 @@ void main() {
       ..physicalSize = const Size(360, 740)
       ..devicePixelRatio = 1;
     addTearDown(tester.view.reset);
-    final List<SpinOdds> odds = effectiveOdds(demoSpinConfig, productStock: 1);
+    final List<SpinOdds> odds = effectiveOdds(v2SpinConfig, productStock: 1);
     await tester.pumpWidget(
       harness(
         Padding(
@@ -146,7 +147,7 @@ void main() {
               OddsTable(
                 odds: odds,
                 productStock: 1,
-                shippingNote: demoSpinConfig.shippingNote,
+                shippingNote: v2SpinConfig.shippingNote,
               ),
             ],
           ),

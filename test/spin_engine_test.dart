@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:roda_sabtu/roda_sabtu.dart';
 
+import 'support/v2_fixtures.dart';
+
 const SpinConfig threePrizeConfig = SpinConfig(
   version: 'test-3',
   prizes: <SpinPrize>[
@@ -38,17 +40,37 @@ Map<String, int> weightsById(List<SpinOdds> odds) => <String, int>{
 
 void main() {
   group('demoSpinConfig', () {
-    test('matches the demo campaign of SPEC-CONTRACT', () {
-      expect(demoSpinConfig.version, 'demo-2026-11');
-      expect(demoSpinConfig.shippingNote, 'Gratis ongkir (Demo)');
+    test('matches the v3 demo campaign of KEPUTUSAN-V3 section 4', () {
+      expect(demoSpinConfig.version, 'demo-v3-2026-11');
+      expect(
+        demoSpinConfig.shippingNote,
+        'Dikirim bersama pesanan belanja berikutnya, tanpa ongkir tambahan',
+      );
+      expect(
+        <String, int>{
+          for (final SpinPrize prize in demoSpinConfig.prizes)
+            prize.id: prize.weight,
+        },
+        <String, int>{
+          'product': 500,
+          'kelopak-10': 500,
+          'kelopak-5': 1500,
+          'kelopak-3': 3000,
+          'kelopak-1': 4500,
+        },
+      );
       final SpinPrize? product = demoSpinConfig.prizeById('product');
-      final SpinPrize? kelopak = demoSpinConfig.prizeById('kelopak-3');
       expect(product?.kind, PrizeKind.product);
-      expect(product?.weight, 1000);
-      expect(kelopak?.kind, PrizeKind.kelopak);
-      expect(kelopak?.label, '3 Kelopak');
-      expect(kelopak?.kelopak, 3);
-      expect(kelopak?.weight, 9000);
+      expect(product?.kelopak, 0);
+      expect(product?.productCode, isNull);
+      for (final int amount in <int>[10, 5, 3, 1]) {
+        final SpinPrize? kelopak = demoSpinConfig.prizeById('kelopak-$amount');
+        expect(kelopak?.kind, PrizeKind.kelopak);
+        expect(kelopak?.label, '$amount Kelopak');
+        expect(kelopak?.kelopak, amount);
+      }
+      expect(demoSpinConfig.fallbackPrizeId, 'kelopak-1');
+      expect(demoSpinConfig.fallbackPrize?.label, '1 Kelopak');
       expect(demoSpinConfig.prizeById('unknown'), isNull);
     });
   });
@@ -57,7 +79,7 @@ void main() {
     for (final int stock in <int>[0, 1, 5]) {
       test('always sums to 10000 with stock $stock', () {
         expect(
-          totalOf(effectiveOdds(demoSpinConfig, productStock: stock)),
+          totalOf(effectiveOdds(v2SpinConfig, productStock: stock)),
           SpinRules.totalWeight,
         );
         expect(
@@ -69,20 +91,17 @@ void main() {
 
     test('keeps configured odds while stock lasts', () {
       expect(
-        weightsById(effectiveOdds(demoSpinConfig, productStock: 1)),
+        weightsById(effectiveOdds(v2SpinConfig, productStock: 1)),
         <String, int>{'product': 1000, 'kelopak-3': 9000},
       );
       expect(
-        weightsById(effectiveOdds(demoSpinConfig, productStock: 5)),
+        weightsById(effectiveOdds(v2SpinConfig, productStock: 5)),
         <String, int>{'product': 1000, 'kelopak-3': 9000},
       );
     });
 
     test('stock 0 gives the product 0% and Kelopak 100%', () {
-      final List<SpinOdds> odds = effectiveOdds(
-        demoSpinConfig,
-        productStock: 0,
-      );
+      final List<SpinOdds> odds = effectiveOdds(v2SpinConfig, productStock: 0);
       expect(weightsById(odds), <String, int>{
         'product': 0,
         'kelopak-3': 10000,
@@ -92,7 +111,7 @@ void main() {
 
     test('negative stock counts as sold out', () {
       expect(
-        weightsById(effectiveOdds(demoSpinConfig, productStock: -2)),
+        weightsById(effectiveOdds(v2SpinConfig, productStock: -2)),
         <String, int>{'product': 0, 'kelopak-3': 10000},
       );
     });
@@ -142,10 +161,7 @@ void main() {
     });
 
     test('keeps prize order and exposes percent', () {
-      final List<SpinOdds> odds = effectiveOdds(
-        demoSpinConfig,
-        productStock: 1,
-      );
+      final List<SpinOdds> odds = effectiveOdds(v2SpinConfig, productStock: 1);
       expect(odds.map((SpinOdds e) => e.prize.id), <String>[
         'product',
         'kelopak-3',
@@ -233,7 +249,7 @@ void main() {
 
   group('resolveSpin', () {
     String resolve(int stock, int roll) =>
-        resolveSpin(demoSpinConfig, productStock: stock, roll: roll).id;
+        resolveSpin(v2SpinConfig, productStock: stock, roll: roll).id;
 
     test('roll 0 and 999 win the product while stock lasts', () {
       expect(resolve(1, 0), 'product');
@@ -277,7 +293,7 @@ void main() {
 
   group('SpinOdds.percentText', () {
     SpinOdds odds(int weight) =>
-        SpinOdds(prize: demoSpinConfig.prizes.last, weight: weight);
+        SpinOdds(prize: v2SpinConfig.prizes.last, weight: weight);
 
     test('formats Indonesian percentages', () {
       expect(odds(1000).percentText, '10%');
