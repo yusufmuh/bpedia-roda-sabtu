@@ -1,5 +1,45 @@
 # Changelog · roda_sabtu
 
+## 3.0.0 · roda dan halaman (26 Nov 2026)
+
+Tampilan v3 untuk keluhan owner K1 dan K6 (roda kurang menarik). Aturan murni
+3.0.0 tidak diubah.
+
+### Ditambahkan
+
+- `PrizeWheel`: roda 3D mengilap tujuh lapisan (bayangan lantai, pelat dan
+  penyangga, cincin emas 24 lampu, cakram beririsan dengan seni koin/kado dan
+  pasak emas, kilap diam, poros wajah Bipy, penunjuk hati berengsel yang
+  terpental tiap pasak). Lampu berkejaran saat diam, mengikuti putaran saat
+  berputar, berkedip saat menang; irisan menang berdenyut tiga kali.
+- `WheelSpinCurve`: percepat 0,4 dtk, laju penuh 1,2 dtk, melambat 4 dtk,
+  mengendap 0,25 dtk (lewat 2 derajat lalu kembali).
+- `WheelViewState`, `WheelController` (abstrak), `WheelSpinResult`,
+  `WheelSpinRecord`, `WheelPrizeProduct`, `wheelWibDayOf`,
+  `LocalWheelController` (memori, dengan pembantu panel uji).
+- `WheelPage`: panggung pesta, strip peluang, aksi per keadaan (putar, hitung
+  mundur + "Ingatkan saya", hasil minggu ini, tamu, promo tidak aktif),
+  perayaan (konfeti, air mancur koin, ledakan sinar), lembar hasil produk dan
+  Kelopak, konfirmasi kembali saat berputar, pengumuman pembaca layar.
+- `OddsStrip`, `WheelCountdown`, `WheelPrizeCard`, `WheelHowItWorks`,
+  `WheelHistoryList`, `LivelyPose`, `WheelArt`, `WheelSprites`.
+- Aset modul terdaftar: `assets/bipy/`, `assets/art/`, `assets/fx/`.
+- `example/`: app contoh dengan panel uji.
+- Tes widget dan halaman baru, tangkapan layar di `docs/shots/`.
+
+### Diubah
+
+- `OddsTable` ditulis ulang: baris berseni, persen dalam pil, kotak
+  pengiriman hadiah, parameter `showTitle`. Teks dan Semantics v2 tetap.
+- Barrel mengekspor `GameCue`, pemformat uang dan persen, serta API baru.
+
+### Dihapus
+
+- `SaturdayWheel` (v2). Kontraknya (`spinToken`, `resultPrizeId`,
+  `landingSeed`, `onSettled`, `onPegPassed`, `skipAnimation`,
+  `idleSemanticsValue`, `centerChild`) dibawa ke `PrizeWheel`; lebar
+  terbesar kini 360 dan tinggi = lebar x 1,13.
+
 ## 3.0.0 · aturan (25 Nov 2026)
 
 Perluasan aturan murni untuk Bpedia Demo v3. Semua parameter baru opsional:

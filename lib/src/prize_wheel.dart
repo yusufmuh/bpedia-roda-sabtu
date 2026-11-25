@@ -947,6 +947,29 @@ class _StandPainter extends CustomPainter {
     final double baseY = s * 1.075;
     final double topHalf = s * 0.13;
     final double baseHalf = s * 0.25;
+    final Rect plate = Rect.fromCenter(
+      center: Offset(s / 2, baseY - s * 0.004),
+      width: (baseHalf + s * 0.03) * 2,
+      height: s * 0.07,
+    );
+    canvas.drawOval(
+      plate.shift(Offset(0, s * 0.012)),
+      Paint()..color = FestivePalette.festDeep,
+    );
+    canvas.drawOval(
+      plate,
+      Paint()..shader = FestivePalette.goldSheen.createShader(plate),
+    );
+    final Rect top = plate.deflate(s * 0.012);
+    canvas.drawOval(
+      top,
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: <Color>[FestivePalette.candyTop, FestivePalette.candyBottom],
+        ).createShader(top),
+    );
     final Path stand = Path()
       ..moveTo(s / 2 - topHalf, topY)
       ..lineTo(s / 2 + topHalf, topY)
@@ -979,16 +1002,6 @@ class _StandPainter extends CustomPainter {
           ],
           stops: <double>[0, 0.25, 0.45, 0.7, 1],
         ).createShader(bounds),
-    );
-    final Rect lip = Rect.fromLTWH(
-      s / 2 - baseHalf - s * 0.01,
-      baseY - s * 0.028,
-      (baseHalf + s * 0.01) * 2,
-      s * 0.032,
-    );
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(lip, Radius.circular(s * 0.016)),
-      Paint()..shader = FestivePalette.goldSheen.createShader(lip),
     );
     canvas.drawLine(
       Offset(s / 2 - topHalf * 0.4, topY + s * 0.02),

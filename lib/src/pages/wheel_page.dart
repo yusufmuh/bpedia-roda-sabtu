@@ -407,11 +407,12 @@ class _WheelPageState extends State<WheelPage> {
     final WheelViewState state = _controller.state;
     final WheelOpening opening = state.openingAt(_controller.now());
     final bool? soundOn = state.soundOn;
-    final List<WheelSpinRecord> history = _pending != null
+    final WheelSpinResult? hidden = _busy ? _pending : null;
+    final List<WheelSpinRecord> history = hidden != null
         ? state.history.skip(1).toList()
         : state.history;
-    final int balance = _pending != null
-        ? state.balance - _pending!.prize.kelopak
+    final int balance = hidden != null
+        ? state.balance - hidden.prize.kelopak
         : state.balance;
     return PopScope<Object?>(
       canPop: !_busy,
