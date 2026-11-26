@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:roda_sabtu/roda_sabtu.dart';
+import 'package:roda_sabtu/src/kit/kit.dart';
 
 import 'support/harness.dart';
 import 'support/v2_fixtures.dart';
@@ -492,6 +493,60 @@ void main() {
       );
       expect(under?.index, 0);
       expect(under?.prizeId, 'product');
+    });
+
+    testWidgets('Kelopak slices alternate pink/white and cream/deep by index', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(harness(v3Wheel(token: 0)));
+      final WheelGeometry geometry = WheelGeometry.fromOdds(
+        v3Odds,
+        layout: demoSpinConfig.wheelLayout,
+      );
+      final List<WheelSlice> plain = <WheelSlice>[
+        for (final WheelSlice slice in geometry.slices)
+          if (slice.prizeId != 'product' && slice.prizeId != 'kelopak-10')
+            slice,
+      ];
+      final int even = plain.where((WheelSlice s) => s.index.isEven).length;
+      expect(even, greaterThan(0));
+      expect(plain.length - even, greaterThan(0));
+      final List<Color?> inks = <Color?>[
+        for (final String number in <String>['1', '3', '5'])
+          for (final Element element
+              in find
+                  .descendant(
+                    of: find.byKey(PrizeWheel.discKey),
+                    matching: find.text(number),
+                  )
+                  .evaluate())
+            (element.widget as Text).style?.color,
+      ];
+      expect(inks.where((Color? c) => c == Colors.white).length, even);
+      expect(
+        inks.where((Color? c) => c == FestivePalette.festDeep).length,
+        plain.length - even,
+      );
+    });
+
+    testWidgets('slice numbers stand upright while the wheel rests', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(harness(v3Wheel(token: 0)));
+      for (final String number in <String>['1', '3', '5', '10']) {
+        for (final Element element
+            in find
+                .descendant(
+                  of: find.byKey(PrizeWheel.discKey),
+                  matching: find.text(number),
+                )
+                .evaluate()) {
+          final RenderBox box = element.renderObject! as RenderBox;
+          final Matrix4 m = box.getTransformTo(null);
+          final double angle = math.atan2(m.entry(1, 0), m.entry(0, 0));
+          expect(angle.abs(), lessThan(0.01), reason: 'angka $number miring');
+        }
+      }
     });
 
     for (final String prizeId in <String>[

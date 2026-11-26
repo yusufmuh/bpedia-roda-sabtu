@@ -1,5 +1,26 @@
 # Changelog · roda_sabtu
 
+## 3.0.0 · perbaikan paritas Figma (26 Nov 2026)
+
+### Diubah
+
+- `PrizeWheel`: irisan Kelopak berselang menurut indeks (genap pink jenuh
+  berangka putih, ganjil krem berangka pink tua); produk tetap maroon dengan
+  kado dan 10 Kelopak tetap emas. Isi irisan (koin, angka, "Kelopak") selalu
+  tegak, juga setelah roda berhenti di hasil mana pun. Angka lebih besar.
+- `OddsStrip`: chip peluang dibungkus rata tengah tanpa gulir; tautan menjadi
+  pil putih "Ketentuan" (label aksesibilitas tetap "Peluang & ketentuan").
+- `WheelPage`: tombol putar emas dengan ikon putar, sublabel "1 putaran
+  tersisa hari ini", keterangan "<hari, tanggal> · berlaku sampai 23.59 WIB",
+  dan bilah lekat berlatar plum. Lembar menang produk menampilkan harga asli
+  dicoret dan "Rp0", catatan "Tanpa ongkir tambahan", dan ikon keranjang.
+
+### Ditambahkan
+
+- `spinDayLabel` ("Sabtu, 28 Nov 2026").
+- Runner web dan Android di `example/` (`flutter run -d chrome`).
+- `repository:` di `pubspec.yaml` dan contoh dependensi Git di README.
+
 ## 3.0.0 · roda dan halaman (26 Nov 2026)
 
 Tampilan v3 untuk keluhan owner K1 dan K6 (roda kurang menarik). Aturan murni

@@ -14,6 +14,7 @@ export 'src/format.dart'
         groupThousands,
         rupiahPerKelopak,
         shortDateLabel,
+        spinDayLabel,
         weekdayName;
 export 'src/kit/game_cue.dart' show GameCue, GameCueSink;
 export 'src/local_wheel_controller.dart';

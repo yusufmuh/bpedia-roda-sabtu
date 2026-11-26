@@ -74,6 +74,27 @@ void main() {
     handle.dispose();
   });
 
+  testWidgets('the spin bar is gold with a play icon and the valid date', (
+    WidgetTester tester,
+  ) async {
+    await pumpPage(tester, localWheel());
+    final CandyButton button = tester.widget<CandyButton>(
+      find.widgetWithText(CandyButton, 'Putar gratis'),
+    );
+    expect(button.variant, CandyVariant.gold);
+    expect(
+      find.descendant(
+        of: find.byType(CandyButton),
+        matching: find.byIcon(Icons.play_arrow_rounded),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Sabtu, 28 Nov 2026 · berlaku sampai 23.59 WIB'),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('the panel lists prize, odds, how it works and history', (
     WidgetTester tester,
   ) async {
@@ -101,6 +122,17 @@ void main() {
     await untilSheet(tester);
     expect(find.text('Selamat, kamu menang!'), findsOneWidget);
     expect(find.text('1 produk gratis'), findsOneWidget);
+    final Text strike = tester.widget<Text>(find.text('Rp23.230'));
+    expect(strike.style?.decoration, TextDecoration.lineThrough);
+    expect(find.text('Rp0'), findsOneWidget);
+    expect(find.text('Tanpa ongkir tambahan'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(ResultSheet),
+        matching: find.byIcon(Icons.shopping_cart_outlined),
+      ),
+      findsOneWidget,
+    );
     expect(
       find.text(
         'Hadiah masuk ke keranjang dan dikirim bersama pesanan berikutnya.',
@@ -426,8 +458,10 @@ void main() {
     WidgetTester tester,
   ) async {
     await pumpPage(tester, localWheel());
-    await tester.ensureVisible(find.bySemanticsLabel('Peluang & ketentuan'));
-    await tester.tap(find.bySemanticsLabel('Peluang & ketentuan'));
+    final Finder link = find.bySemanticsLabel('Peluang & ketentuan').first;
+    await Scrollable.ensureVisible(tester.element(link), alignment: 0.5);
+    await tester.pump();
+    await tester.tap(link);
     await tester.pump(const Duration(milliseconds: 500));
     expect(find.byType(BottomSheet), findsOneWidget);
   });

@@ -236,8 +236,8 @@ class _OddsRow extends StatelessWidget {
   }
 }
 
-/// Strip peluang di hero (selalu terlihat sebelum memutar): chip kaca
-/// bergulir per hadiah, lalu tautan "Peluang & ketentuan".
+/// Strip peluang di hero (selalu terlihat sebelum memutar): chip kaca per
+/// hadiah dibungkus rata tengah tanpa gulir, lalu pil "Ketentuan".
 class OddsStrip extends StatelessWidget {
   /// Membuat strip dari peluang efektif [odds].
   const OddsStrip({
@@ -257,7 +257,7 @@ class OddsStrip extends StatelessWidget {
   /// Membuka lembar tabel lengkap. `null` menyembunyikan tautan.
   final VoidCallback? onOpenDetails;
 
-  /// Jarak tepi gulir.
+  /// Jarak tepi strip.
   final EdgeInsets padding;
 
   /// Label chip [entry], mis. "Produk gratis 5% · sisa 3".
@@ -282,12 +282,15 @@ class OddsStrip extends StatelessWidget {
           height: 1.3,
         );
     final VoidCallback? open = onOpenDetails;
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
+    return Padding(
       padding: padding,
-      child: Row(
+      child: Wrap(
+        alignment: WrapAlignment.center,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 6,
+        runSpacing: 6,
         children: <Widget>[
-          for (final SpinOdds entry in odds) ...<Widget>[
+          for (final SpinOdds entry in odds)
             _OddsChip(
               label: chipLabel(entry, productStock),
               prize: entry.prize,
@@ -295,42 +298,71 @@ class OddsStrip extends StatelessWidget {
               highlight:
                   entry.prize.kind == PrizeKind.product && productStock > 0,
             ),
-            const SizedBox(width: 8),
-          ],
-          if (open != null)
-            Semantics(
-              button: true,
-              label: 'Peluang & ketentuan',
-              excludeSemantics: true,
-              child: InkWell(
-                onTap: open,
-                borderRadius: const BorderRadius.all(Radius.circular(999)),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(minHeight: 48),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: <Widget>[
-                        Text(
-                          'Peluang & ketentuan',
-                          style: style.copyWith(
-                            decoration: TextDecoration.underline,
-                            decorationColor: Colors.white,
-                          ),
-                        ),
-                        const Icon(
-                          Icons.chevron_right_rounded,
-                          color: Colors.white,
-                          size: 18,
-                        ),
-                      ],
-                    ),
+          if (open != null) _TermsPill(onTap: open, style: style),
+        ],
+      ),
+    );
+  }
+}
+
+/// Pil putih "Ketentuan >" yang membuka lembar Peluang & ketentuan. Area
+/// sentuh 48 dp walau pilnya ramping.
+class _TermsPill extends StatelessWidget {
+  const _TermsPill({required this.onTap, required this.style});
+
+  final VoidCallback onTap;
+  final TextStyle style;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: 'Peluang & ketentuan',
+      excludeSemantics: true,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: const BorderRadius.all(Radius.circular(999)),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 48),
+          child: Center(
+            widthFactor: 1,
+            child: DecoratedBox(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.all(Radius.circular(999)),
+                boxShadow: <BoxShadow>[
+                  BoxShadow(
+                    color: Color(0x33000000),
+                    blurRadius: 6,
+                    offset: Offset(0, 2),
                   ),
+                ],
+              ),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 7, 6, 7),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Flexible(
+                      child: Text(
+                        'Ketentuan',
+                        style: style.copyWith(
+                          color: FestivePalette.festDeep,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      color: FestivePalette.festDeep,
+                      size: 18,
+                    ),
+                  ],
                 ),
               ),
             ),
-        ],
+          ),
+        ),
       ),
     );
   }
@@ -372,11 +404,13 @@ class _OddsChip extends StatelessWidget {
             children: <Widget>[
               Image(image: WheelArt.forPrize(prize), width: 24, height: 24),
               const SizedBox(width: 6),
-              Text(
-                label,
-                style: highlight
-                    ? style.copyWith(color: FestivePalette.onGold)
-                    : style,
+              Flexible(
+                child: Text(
+                  label,
+                  style: highlight
+                      ? style.copyWith(color: FestivePalette.onGold)
+                      : style,
+                ),
               ),
             ],
           ),

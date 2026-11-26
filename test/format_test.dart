@@ -37,6 +37,14 @@ void main() {
     });
   });
 
+  group('spinDayLabel', () {
+    test('hari, tanggal, bulan singkat, dan tahun', () {
+      expect(spinDayLabel(wibDayFor(2026, 11, 28)), 'Sabtu, 28 Nov 2026');
+      expect(spinDayLabel(wibDayFor(2027, 1, 2)), 'Sabtu, 2 Jan 2027');
+      expect(spinDayLabel(0), 'Kamis, 1 Jan 1970');
+    });
+  });
+
   group('shortDateLabel', () {
     test('tanggal dan bulan singkat Indonesia', () {
       expect(shortDateLabel(wibDayFor(2026, 11, 28)), '28 Nov');

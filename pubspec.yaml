@@ -4,6 +4,7 @@ description: >-
   (peluang, kuota produk, hadiah cadangan, irisan roda) dan halaman game siap
   pakai: roda 3D mengilap, lampu tepi, Bipy bergerak, lembar hasil.
 version: 3.0.0
+repository: https://github.com/yusufmuh/bpedia-roda-sabtu
 publish_to: none
 
 environment:

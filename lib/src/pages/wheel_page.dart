@@ -253,14 +253,22 @@ class _WheelPageState extends State<WheelPage> {
         title: 'Selamat, kamu menang!',
         pill: '1 produk gratis',
         podium: WheelArt.podium,
+        artHeight: item == null ? 132 : 150,
         art: item == null
             ? const Image(image: WheelArt.gift)
-            : SizedBox.square(
-                dimension: 124,
-                child: ClipRRect(
-                  borderRadius: const BorderRadius.all(Radius.circular(16)),
-                  child: Image(image: item.image, fit: BoxFit.cover),
-                ),
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  SizedBox.square(
+                    dimension: 108,
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.all(Radius.circular(16)),
+                      child: Image(image: item.image, fit: BoxFit.cover),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  _FreePriceTag(price: item.price),
+                ],
               ),
         companion: const SpriteAnimation(
           spec: WheelSprites.dance,
@@ -271,7 +279,9 @@ class _WheelPageState extends State<WheelPage> {
         message:
             'Hadiah masuk ke keranjang dan dikirim bersama pesanan '
             'berikutnya.',
+        note: 'Tanpa ongkir tambahan',
         primaryLabel: 'Lihat keranjang',
+        primaryIcon: const Icon(Icons.shopping_cart_outlined, size: 20),
         onPrimary: () {
           Navigator.of(sheet).pop();
           _controller.openCart();
@@ -649,10 +659,26 @@ class _WheelPageState extends State<WheelPage> {
   }
 
   Widget _bottomBar(WheelViewState state, WheelOpening opening) {
+    final bool spinDay =
+        state.promoActive &&
+        isSaturdayWib(state.today) &&
+        (_busy ||
+            !state.signedIn ||
+            state.eligibility == SpinEligibility.available);
+    return _StageBar(
+      caption: spinDay
+          ? '${spinDayLabel(state.today)} · berlaku sampai 23.59 WIB'
+          : null,
+      child: _barButton(state, opening),
+    );
+  }
+
+  Widget _barButton(WheelViewState state, WheelOpening opening) {
     if (_busy) {
       return CandyButton(
         label: 'Sedang berputar',
         sublabel: 'Semoga hoki, Babes!',
+        variant: CandyVariant.gold,
         busy: true,
         onPressed: _spin,
       );
@@ -668,7 +694,9 @@ class _WheelPageState extends State<WheelPage> {
       case SpinEligibility.available:
         return CandyButton(
           label: 'Putar gratis',
-          sublabel: '1 putaran gratis hari ini',
+          sublabel: '1 putaran tersisa hari ini',
+          variant: CandyVariant.gold,
+          icon: const Icon(Icons.play_arrow_rounded, size: 22),
           pulse: true,
           onPressed: () => unawaited(_spin()),
         );
@@ -696,6 +724,123 @@ class _WheelPageState extends State<WheelPage> {
           onPressed: _controller.openShop,
         );
     }
+  }
+}
+
+/// Label harga hadiah produk: harga asli dicoret lalu "Rp0".
+class _FreePriceTag extends StatelessWidget {
+  const _FreePriceTag({required this.price});
+
+  final int price;
+
+  @override
+  Widget build(BuildContext context) {
+    final TextStyle base =
+        Theme.of(context).textTheme.bodyMedium ?? const TextStyle();
+    return Semantics(
+      label: 'Harga ${formatRupiah(price)} jadi Rp0',
+      excludeSemantics: true,
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.all(Radius.circular(999)),
+          boxShadow: <BoxShadow>[
+            BoxShadow(
+              color: Color(0x336B1439),
+              blurRadius: 8,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: <Widget>[
+              Text(
+                formatRupiah(price),
+                style: base.copyWith(
+                  color: const Color(0xFF6B6468),
+                  fontSize: 12,
+                  height: 16 / 12,
+                  decoration: TextDecoration.lineThrough,
+                  decorationColor: const Color(0xFF6B6468),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'Rp0',
+                style: base.copyWith(
+                  color: FestivePalette.candyBottom,
+                  fontSize: 18,
+                  height: 24 / 18,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Bilah lekat bawah bernuansa panggung: latar plum sampai tepi layar
+/// supaya tombol emas kontras, dengan keterangan tanggal berlaku di bawah
+/// tombol. Latar dilukis melewati jarak tepi bilah bawaan [GameScaffold].
+class _StageBar extends StatelessWidget {
+  const _StageBar({required this.child, this.caption});
+
+  final Widget child;
+  final String? caption;
+
+  @override
+  Widget build(BuildContext context) {
+    final String? caption = this.caption;
+    final TextStyle base =
+        Theme.of(context).textTheme.bodySmall ?? const TextStyle();
+    return Stack(
+      clipBehavior: Clip.none,
+      children: <Widget>[
+        const Positioned(
+          left: -16,
+          right: -16,
+          top: -11,
+          bottom: -240,
+          child: IgnorePointer(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: <Color>[Color(0xFF7E1945), FestivePalette.festDeep],
+                ),
+              ),
+            ),
+          ),
+        ),
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            child,
+            if (caption != null) ...<Widget>[
+              const SizedBox(height: 6),
+              Text(
+                caption,
+                textAlign: TextAlign.center,
+                style: base.copyWith(
+                  color: Colors.white.withValues(alpha: 0.82),
+                  fontSize: 12,
+                  height: 16 / 12,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ],
+    );
   }
 }
 

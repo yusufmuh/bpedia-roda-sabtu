@@ -18,6 +18,18 @@ Strip animasi: [putaran 6 detik](docs/shots/roda_strip_putar.jpg) dan [perayaan 
 
 ## Pasang
 
+Dari Git (tag rilis):
+
+```yaml
+dependencies:
+  roda_sabtu:
+    git:
+      url: https://github.com/yusufmuh/bpedia-roda-sabtu.git
+      ref: v3.0.0
+```
+
+Atau dari salinan lokal di sebelah repo host:
+
 ```yaml
 dependencies:
   roda_sabtu:
@@ -118,7 +130,7 @@ abstract class WheelController extends ChangeNotifier {
 
 ### Aturan murni
 
-`SpinConfig`, `SpinPrize`, `SpinOdds`, `effectiveOdds`, `resolveSpin`, `demoSpinConfig` (nilai demo v3), `WheelSlice`, `buildWheelSlices`, `WheelGeometry`, `WheelOpening`, `nextSpinSaturday`, `wheelOpening`, `spinEligibility`, `isSaturdayWib`, `daysUntilSaturday`, pemformat `formatRupiah`, `weekdayName`, `shortDateLabel`, `countdownLabel`. Rinciannya di `CHANGELOG.md` 3.0.0 (aturan) dan `server/spin.php` (padanan PHP).
+`SpinConfig`, `SpinPrize`, `SpinOdds`, `effectiveOdds`, `resolveSpin`, `demoSpinConfig` (nilai demo v3), `WheelSlice`, `buildWheelSlices`, `WheelGeometry`, `WheelOpening`, `nextSpinSaturday`, `wheelOpening`, `spinEligibility`, `isSaturdayWib`, `daysUntilSaturday`, pemformat `formatRupiah`, `weekdayName`, `shortDateLabel`, `spinDayLabel`, `countdownLabel`. Rinciannya di `CHANGELOG.md` 3.0.0 (aturan) dan `server/spin.php` (padanan PHP).
 
 ## Perilaku penting
 
@@ -129,13 +141,14 @@ abstract class WheelController extends ChangeNotifier {
 - Suara: `spinStart`, `tick` (dibatasi 20/dtk), `winKelopak` atau `winProduct`, `softError`. Getar ditangani kit.
 - Hasil diumumkan ke pembaca layar; tabel peluang menjadi alternatif non-visual roda.
 - Teks tahan skala 200% pada lebar 360 (diuji untuk semua keadaan, terang dan gelap).
+- Pengingat Sabtu: host web wajib mengirim `reminderSupported: false` di `WheelViewState` karena notifikasi lokal tidak tersedia di web; sakelar "Ingatkan saya" lalu disembunyikan. Host Android/iOS mengirim `true` bila izin notifikasi bisa diminta.
 
 ## Contoh
 
+Runner web dan Android sudah ada di `example/`:
+
 ```bash
-cd example
-flutter create --platforms=web,android .   # sekali, membuat runner
-flutter run
+cd example && flutter run -d chrome
 ```
 
 Tombol kembali di contoh membuka **Panel uji**: ganti hari (Kamis, Jumat, Sabtu, Minggu), masuk/tamu, promo, kuota, paksa hasil berikutnya, hapus putaran, tema, kurangi gerak.
@@ -154,4 +167,8 @@ php -d extension=pdo_sqlite server/spin.php  # swa-uji server
 
 - `PRD.md`: kebutuhan produk v3.
 - `CHANGELOG.md`: riwayat versi.
-- `PROGRESS-R.md`, `PROGRESS-M2.md`: catatan pembangunan v3.
+- `PROGRESS-R.md`, `PROGRESS-M2.md`, `PROGRESS-FIX-M2.md`: catatan pembangunan dan perbaikan v3.
+
+## Lisensi
+
+Lisensi belum ditetapkan pemilik. Sampai ada berkas `LICENSE`, kode ini hanya untuk Bpedia Demo.

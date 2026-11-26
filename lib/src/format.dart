@@ -64,6 +64,12 @@ String shortDateLabel(int wibDay) {
   return '${date.day} ${_monthNames[date.month - 1]}';
 }
 
+/// Hari lengkap dari hari WIB: "Sabtu, 28 Nov 2026".
+String spinDayLabel(int wibDay) {
+  final DateTime date = DateTime.utc(1970).add(Duration(days: wibDay));
+  return '${weekdayName(wibDay)}, ${shortDateLabel(wibDay)} ${date.year}';
+}
+
 /// Sisa waktu: "2 hari 3 jam", "5 jam 12 menit", "45 menit", atau
 /// "kurang dari 1 menit".
 String countdownLabel(Duration remaining) {

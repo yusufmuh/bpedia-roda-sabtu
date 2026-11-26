@@ -288,6 +288,47 @@ void main() {
       handle.dispose();
     });
 
+    testWidgets('wraps every chip and "Ketentuan" inside a 390 dp screen', (
+      WidgetTester tester,
+    ) async {
+      tester.view
+        ..physicalSize = const Size(390, 844)
+        ..devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final SemanticsHandle handle = tester.ensureSemantics();
+      await tester.pumpWidget(
+        host(
+          OddsStrip(
+            odds: effectiveOdds(demoSpinConfig, productStock: 3),
+            productStock: 3,
+            onOpenDetails: () {},
+            padding: EdgeInsets.zero,
+          ),
+        ),
+      );
+      expect(
+        find.descendant(
+          of: find.byType(OddsStrip),
+          matching: find.byType(Scrollable),
+        ),
+        findsNothing,
+      );
+      for (final String label in <String>[
+        'Produk gratis 5% · sisa 3',
+        '10 Kelopak 5%',
+        '5 Kelopak 15%',
+        '3 Kelopak 30%',
+        '1 Kelopak 45%',
+        'Peluang & ketentuan',
+      ]) {
+        final Rect rect = tester.getRect(find.bySemanticsLabel(label));
+        expect(rect.left, greaterThanOrEqualTo(0), reason: label);
+        expect(rect.right, lessThanOrEqualTo(390), reason: label);
+      }
+      expect(find.text('Ketentuan'), findsOneWidget);
+      handle.dispose();
+    });
+
     test('chip label for sold-out product', () {
       final List<SpinOdds> odds = effectiveOdds(
         demoSpinConfig,
@@ -312,6 +353,7 @@ void main() {
         ),
       );
       expect(find.text('Peluang & ketentuan'), findsNothing);
+      expect(find.text('Ketentuan'), findsNothing);
     });
   });
 

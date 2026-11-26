@@ -494,20 +494,23 @@ class _FaceSlice {
   final SpinPrize prize;
 }
 
-enum _Tone { cream, blush, petal, gold, product }
+enum _Tone { cream, pink, gold, product }
 
-_Tone _toneOf(SpinPrize prize) {
+/// Irisan Kelopak berselang menurut indeks (genap pink jenuh, ganjil krem)
+/// supaya roda terbaca berputar; produk dan 10 Kelopak tetap menonjol.
+_Tone _toneOf(_FaceSlice face) {
+  final SpinPrize prize = face.prize;
   if (prize.kind == PrizeKind.product) return _Tone.product;
   if (prize.kelopak >= 10) return _Tone.gold;
-  if (prize.kelopak >= 5) return _Tone.petal;
-  if (prize.kelopak >= 3) return _Tone.blush;
-  return _Tone.cream;
+  return face.slice.index.isEven ? _Tone.pink : _Tone.cream;
 }
 
 List<Color> _fillOf(_Tone tone) => switch (tone) {
   _Tone.cream => const <Color>[Color(0xFFFFFDF8), FestivePalette.festCream],
-  _Tone.blush => const <Color>[Color(0xFFFFF1F5), FestivePalette.festBlush],
-  _Tone.petal => const <Color>[Color(0xFFFFB3CA), FestivePalette.festPetal],
+  _Tone.pink => const <Color>[
+    FestivePalette.festMid,
+    FestivePalette.candyBottom,
+  ],
   _Tone.gold => const <Color>[FestivePalette.goldLight, FestivePalette.gold],
   _Tone.product => const <Color>[
     FestivePalette.candyBottom,
@@ -516,13 +519,14 @@ List<Color> _fillOf(_Tone tone) => switch (tone) {
 };
 
 Color _inkOf(_Tone tone) => switch (tone) {
-  _Tone.product => Colors.white,
+  _Tone.product || _Tone.pink => Colors.white,
   _Tone.gold => const Color(0xFF5A3300),
   _ => FestivePalette.festDeep,
 };
 
-/// Cakram berputar: irisan, isi irisan, dan pasak dalam satu lapisan yang
-/// dirender sekali lalu hanya diputar.
+/// Cakram berputar: irisan dan pasak dirender sekali lalu hanya diputar;
+/// isi irisan ikut berputar mengitari pusat tetapi diputar balik supaya
+/// angka selalu tegak, juga saat roda berhenti di hasil mana pun.
 class _RotatingDisc extends StatelessWidget {
   const _RotatingDisc({
     required this.rotation,
@@ -547,7 +551,9 @@ class _RotatingDisc extends StatelessWidget {
       child: Stack(
         children: <Widget>[
           Positioned.fill(
-            child: CustomPaint(painter: _DiscPainter(faces, metrics)),
+            child: RepaintBoundary(
+              child: CustomPaint(painter: _DiscPainter(faces, metrics)),
+            ),
           ),
           for (final _FaceSlice face in faces)
             Positioned.fill(
@@ -557,10 +563,23 @@ class _RotatingDisc extends StatelessWidget {
                   alignment: Alignment.topCenter,
                   child: Padding(
                     padding: EdgeInsets.only(top: r * 0.1),
-                    child: _SliceLabel(
-                      face: face,
-                      radius: r,
-                      baseStyle: baseStyle,
+                    child: AnimatedBuilder(
+                      animation: rotation,
+                      builder: (BuildContext context, Widget? child) =>
+                          Transform.rotate(
+                            angle:
+                                -(face.slice.startRadians +
+                                    face.slice.sweepRadians / 2 +
+                                    rotation.value),
+                            child: child,
+                          ),
+                      child: RepaintBoundary(
+                        child: _SliceLabel(
+                          face: face,
+                          radius: r,
+                          baseStyle: baseStyle,
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -602,8 +621,8 @@ class _RotatingDisc extends StatelessWidget {
   }
 }
 
-/// Isi satu irisan, menghadap keluar: angka besar di dekat tepi, kata
-/// "Kelopak", lalu seni koin atau kado ke arah pusat.
+/// Isi satu irisan, tegak saat roda diam: seni koin, angka besar, lalu kata
+/// "Kelopak" (irisan produk: "Produk gratis" lalu kado).
 class _SliceLabel extends StatelessWidget {
   const _SliceLabel({
     required this.face,
@@ -618,27 +637,30 @@ class _SliceLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final SpinPrize prize = face.prize;
-    final _Tone tone = _toneOf(prize);
+    final _Tone tone = _toneOf(face);
     final Color ink = _inkOf(tone);
     final bool narrow = face.slice.sweepDeg < 30;
     final bool product = prize.kind == PrizeKind.product;
     final double width = math.min(
-      radius * 0.62,
-      2 * radius * 0.78 * math.sin(face.slice.sweepRadians / 2) * 0.92,
+      radius * 0.56,
+      2 *
+          radius *
+          (narrow ? 0.84 : 0.7) *
+          math.sin(face.slice.sweepRadians / 2) *
+          0.92,
     );
     final List<Shadow> glow = <Shadow>[
       Shadow(
-        color: product
-            ? Colors.black.withValues(alpha: 0.35)
+        color: ink == Colors.white
+            ? FestivePalette.festDeep.withValues(alpha: 0.45)
             : Colors.white.withValues(alpha: 0.7),
         blurRadius: 2,
         offset: const Offset(0, 1),
       ),
     ];
-    final String headline = product ? 'Produk' : '${prize.kelopak}';
     final TextStyle big = baseStyle.copyWith(
       color: product ? FestivePalette.goldLight : ink,
-      fontSize: product ? radius * 0.1 : radius * (narrow ? 0.16 : 0.2),
+      fontSize: product ? radius * 0.11 : radius * (narrow ? 0.18 : 0.22),
       fontWeight: FontWeight.w800,
       height: 1,
       shadows: glow,
@@ -646,41 +668,57 @@ class _SliceLabel extends StatelessWidget {
     );
     final TextStyle small = baseStyle.copyWith(
       color: ink,
-      fontSize: radius * 0.068,
+      fontSize: radius * 0.078,
       fontWeight: FontWeight.w700,
       height: 1.1,
       shadows: glow,
     );
-    return SizedBox(
-      width: width,
-      height: radius * 0.56,
-      child: Column(
-        children: <Widget>[
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(headline, style: big, maxLines: 1),
-          ),
-          if (!narrow) ...<Widget>[
-            SizedBox(height: radius * 0.02),
+    final Widget art = Image(
+      image: WheelArt.forPrize(prize),
+      width: math.min(narrow ? width * 1.1 : width * 0.7, radius * 0.3),
+      fit: BoxFit.contain,
+      alignment: Alignment.bottomCenter,
+      filterQuality: FilterQuality.medium,
+    );
+    if (product) {
+      return SizedBox(
+        width: width,
+        height: radius * 0.52,
+        child: Column(
+          children: <Widget>[
             FittedBox(
               fit: BoxFit.scaleDown,
-              child: Text(
-                product ? 'gratis' : 'Kelopak',
-                style: small,
-                maxLines: 1,
+              child: Text('Produk', style: big, maxLines: 1),
+            ),
+            if (!narrow)
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text('gratis', style: small, maxLines: 1),
               ),
+            SizedBox(height: radius * 0.03),
+            Expanded(child: art),
+          ],
+        ),
+      );
+    }
+    return SizedBox(
+      width: width,
+      height: radius * 0.52,
+      child: Column(
+        children: <Widget>[
+          Expanded(child: art),
+          SizedBox(height: radius * 0.02),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text('${prize.kelopak}', style: big, maxLines: 1),
+          ),
+          if (!narrow) ...<Widget>[
+            SizedBox(height: radius * 0.01),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text('Kelopak', style: small, maxLines: 1),
             ),
           ],
-          SizedBox(height: radius * 0.04),
-          Expanded(
-            child: Image(
-              image: WheelArt.forPrize(prize),
-              width: math.min(narrow ? width : width * 0.8, radius * 0.34),
-              fit: BoxFit.contain,
-              alignment: Alignment.topCenter,
-              filterQuality: FilterQuality.medium,
-            ),
-          ),
         ],
       ),
     );
@@ -701,7 +739,7 @@ class _DiscPainter extends CustomPainter {
     // Sudut 0 = jam 12, searah jarum jam.
     const double up = -math.pi / 2;
     for (final _FaceSlice face in faces) {
-      final _Tone tone = _toneOf(face.prize);
+      final _Tone tone = _toneOf(face);
       final List<Color> fill = _fillOf(tone);
       final Path path = Path()
         ..moveTo(c.dx, c.dy)
