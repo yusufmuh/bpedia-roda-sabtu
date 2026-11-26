@@ -226,8 +226,19 @@ void _paintCoin(Canvas canvas, ui.Image? image, Offset center, double radius, do
 }
 
 /// Memicu koin terbang pada [CoinFlight].
+///
+/// Pemiliknya memanggil [dispose] di `State.dispose`.
 class CoinFlightController {
   _CoinFlightState? _state;
+  bool _disposed = false;
+
+  /// Melepas pengendali dari lapisannya. Koin yang sedang terbang tetap
+  /// diselesaikan lapisan; pengendali tidak boleh dipakai lagi.
+  void dispose() {
+    assert(!_disposed, 'CoinFlightController sudah dibuang.');
+    _disposed = true;
+    _state = null;
+  }
 
   /// `true` selama masih ada koin di udara.
   bool get isFlying => _state?._coins.isNotEmpty ?? false;
@@ -251,6 +262,7 @@ class CoinFlightController {
     VoidCallback? onFirstArrive,
     ValueChanged<int>? onArrive,
   }) {
+    assert(!_disposed, 'CoinFlightController sudah dibuang.');
     assert(fromKey != null || fromGlobal != null, 'Beri fromKey atau fromGlobal.');
     assert(count > 0);
     final state = _state;
@@ -356,6 +368,7 @@ class _CoinFlightState extends State<CoinFlight> with SingleTickerProviderStateM
   void initState() {
     super.initState();
     _ticker = createTicker(_onTick);
+    assert(!widget.controller._disposed, 'Pengendali sudah dibuang.');
     widget.controller._state = this;
   }
 
@@ -370,6 +383,7 @@ class _CoinFlightState extends State<CoinFlight> with SingleTickerProviderStateM
     super.didUpdateWidget(oldWidget);
     if (oldWidget.controller != widget.controller) {
       if (oldWidget.controller._state == this) oldWidget.controller._state = null;
+      assert(!widget.controller._disposed, 'Pengendali sudah dibuang.');
       widget.controller._state = this;
     }
     if (oldWidget.image != widget.image) {
@@ -579,8 +593,18 @@ class _CoinFlightPainter extends CustomPainter {
 }
 
 /// Memicu air mancur koin pada [CoinFountain].
+///
+/// Pemiliknya memanggil [dispose] di `State.dispose`.
 class CoinFountainController {
   _CoinFountainState? _state;
+  bool _disposed = false;
+
+  /// Melepas pengendali dari lapisannya; pengendali tidak boleh dipakai lagi.
+  void dispose() {
+    assert(!_disposed, 'CoinFountainController sudah dibuang.');
+    _disposed = true;
+    _state = null;
+  }
 
   bool get isSpraying => _state?._ticker.isActive ?? false;
 
@@ -593,6 +617,7 @@ class CoinFountainController {
     int count = 12,
     double power = 1,
   }) {
+    assert(!_disposed, 'CoinFountainController sudah dibuang.');
     assert(count > 0);
     final state = _state;
     if (state == null) return Future<void>.value();
@@ -647,6 +672,7 @@ class _CoinFountainState extends State<CoinFountain> with SingleTickerProviderSt
   void initState() {
     super.initState();
     _ticker = createTicker(_onTick);
+    assert(!widget.controller._disposed, 'Pengendali sudah dibuang.');
     widget.controller._state = this;
   }
 
@@ -661,6 +687,7 @@ class _CoinFountainState extends State<CoinFountain> with SingleTickerProviderSt
     super.didUpdateWidget(oldWidget);
     if (oldWidget.controller != widget.controller) {
       if (oldWidget.controller._state == this) oldWidget.controller._state = null;
+      assert(!widget.controller._disposed, 'Pengendali sudah dibuang.');
       widget.controller._state = this;
     }
     if (oldWidget.image != widget.image) {

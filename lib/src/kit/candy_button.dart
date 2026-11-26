@@ -143,6 +143,16 @@ class CandyButton extends StatefulWidget {
 
   @override
   State<CandyButton> createState() => _CandyButtonState();
+
+  /// Sorot kaca muka tombol (KRITIK G3): pita setinggi 40% muka, inset 12 dp
+  /// dari kiri dan kanan, 3 dp dari atas.
+  @visibleForTesting
+  static Rect glossRectFor(Rect face) => Rect.fromLTRB(
+        face.left + 12,
+        face.top + 3,
+        math.max(face.left + 12, face.right - 12),
+        face.top + face.height * 0.40,
+      );
 }
 
 class _CandyButtonState extends State<CandyButton> with TickerProviderStateMixin {
@@ -424,41 +434,19 @@ class _CandyPainter extends CustomPainter {
         ),
     );
 
-    // Sorot kaca: pil terang di separuh atas.
-    final glossRect = Rect.fromLTRB(
-      faceRect.left + 5,
-      faceRect.top + 3,
-      faceRect.right - 5,
-      faceRect.top + faceHeight * 0.5,
-    );
-    canvas.drawRRect(
-      RRect.fromRectAndCorners(
-        glossRect,
-        topLeft: Radius.circular(glossRect.height),
-        topRight: Radius.circular(glossRect.height),
-        bottomLeft: Radius.circular(glossRect.height * 0.55),
-        bottomRight: Radius.circular(glossRect.height * 0.55),
-      ),
-      Paint()
-        ..shader = ui.Gradient.linear(
-          glossRect.topCenter,
-          glossRect.bottomCenter,
-          <Color>[Colors.white.withValues(alpha: 0.50 * colors.gloss), Colors.white.withValues(alpha: 0.06 * colors.gloss)],
-        ),
-    );
-
-    // Titik pantul kecil di kiri atas.
-    final speck = Offset(faceRect.left + faceHeight * 0.52, faceRect.top + faceHeight * 0.24);
-    canvas
-      ..drawOval(
-        Rect.fromCenter(center: speck, width: faceHeight * 0.30, height: faceHeight * 0.11),
-        Paint()..color = Colors.white.withValues(alpha: 0.75 * colors.gloss),
-      )
-      ..drawCircle(
-        speck + Offset(faceHeight * 0.24, 0),
-        faceHeight * 0.035,
-        Paint()..color = Colors.white.withValues(alpha: 0.7 * colors.gloss),
+    // Sorot kaca (KRITIK G3): pita gradien 35% -> 0 setinggi 40% muka, inset 12 dp.
+    final glossRect = CandyButton.glossRectFor(faceRect);
+    if (glossRect.width > 0 && glossRect.height > 0) {
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(glossRect, Radius.circular(glossRect.height / 2)),
+        Paint()
+          ..shader = ui.Gradient.linear(
+            glossRect.topCenter,
+            glossRect.bottomCenter,
+            <Color>[Colors.white.withValues(alpha: 0.35 * colors.gloss), Colors.white.withValues(alpha: 0)],
+          ),
       );
+    }
 
     final value = shine.value;
     if (!flat && value > 0 && value < sweepFraction) {

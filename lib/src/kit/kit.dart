@@ -12,6 +12,7 @@ export 'festive_palette.dart';
 export 'game_cue.dart';
 export 'game_scaffold.dart';
 export 'motion.dart';
+export 'preview_theme.dart';
 export 'result_sheet.dart';
 export 'sprite_sheet.dart';
 export 'sunburst.dart';

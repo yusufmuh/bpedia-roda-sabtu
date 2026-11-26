@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -495,7 +496,11 @@ class GameBarAction extends StatelessWidget {
 /// - Hero pesta ([backdrop], bawaan [FestiveHero]) terbentang di belakang
 ///   status bar; [hero] adalah isi di atasnya (judul, chip, Bipy).
 /// - Bilah atas transparan (kembali, [title], [actions]) yang memadat menjadi
-///   `surface` setelah hero tergulir lewat.
+///   `surface` setelah hero tergulir lewat. Isi hero tidak pernah lewat di
+///   bawah bilah: saat digulir, isi itu memudar dalam
+///   [GameScaffold.heroFadeExtent] dp di bawah garis bilah lalu terpotong di
+///   garis itu. Judul bilah baru muncul setelah [heroTitleExtent] dp teratas
+///   isi hero (judul hero) tergulir lewat.
 /// - Isi berupa [slivers] di atas panel `surface` beradius atas 24 yang
 ///   menumpuk [panelOverlap] di atas hero.
 /// - [bottomBar] opsional menempel di bawah dengan garis dan area aman.
@@ -513,6 +518,7 @@ class GameScaffold extends StatefulWidget {
     this.scrollController,
     this.panelOverlap = 24,
     this.heroPadding = const EdgeInsets.fromLTRB(16, 4, 16, 20),
+    this.heroTitleExtent = 96,
   });
 
   final String title;
@@ -533,8 +539,18 @@ class GameScaffold extends StatefulWidget {
   final double panelOverlap;
   final EdgeInsets heroPadding;
 
+  /// Jarak dari atas isi [hero] sampai bawah judul hero (dp). Judul bilah
+  /// mulai muncul setelah bagian ini habis tergulir di bawah bilah.
+  final double heroTitleExtent;
+
   /// Tinggi bilah atas (tanpa status bar).
   static const double barHeight = 56;
+
+  /// Lebar pudar isi hero tepat di bawah garis bilah (dp).
+  static const double heroFadeExtent = 24;
+
+  /// Batas skala teks judul dan aksi teks bilah, sama dengan `AppBar`.
+  static const double barMaxTextScale = 1.34;
 
   @override
   State<GameScaffold> createState() => _GameScaffoldState();
@@ -542,6 +558,8 @@ class GameScaffold extends StatefulWidget {
 
 class _GameScaffoldState extends State<GameScaffold> {
   final ValueNotifier<double> _solid = ValueNotifier<double>(0);
+  final ValueNotifier<double> _offset = ValueNotifier<double>(0);
+  final ValueNotifier<double> _titleReveal = ValueNotifier<double>(0);
   final GlobalKey _heroKey = GlobalKey();
   ScrollController? _ownController;
 
@@ -570,7 +588,12 @@ class _GameScaffoldState extends State<GameScaffold> {
     final top = MediaQuery.paddingOf(context).top + GameScaffold.barHeight;
     final end = math.max(1.0, heroHeight - widget.panelOverlap - top);
     final start = math.max(0.0, end - 48);
-    _solid.value = ((controller.offset - start) / (end - start)).clamp(0.0, 1.0);
+    final offset = controller.offset;
+    _offset.value = offset;
+    _solid.value = ((offset - start) / (end - start)).clamp(0.0, 1.0);
+    final titleGone = widget.heroPadding.top + widget.heroTitleExtent;
+    final reveal = ((offset - titleGone) / GameScaffold.heroFadeExtent).clamp(0.0, 1.0);
+    _titleReveal.value = math.max(reveal, _solid.value);
   }
 
   @override
@@ -578,6 +601,8 @@ class _GameScaffoldState extends State<GameScaffold> {
     _controller.removeListener(_onScroll);
     _ownController?.dispose();
     _solid.dispose();
+    _offset.dispose();
+    _titleReveal.dispose();
     super.dispose();
   }
 
@@ -594,11 +619,18 @@ class _GameScaffoldState extends State<GameScaffold> {
         fit: StackFit.passthrough,
         children: <Widget>[
           Positioned.fill(child: widget.backdrop ?? const FestiveHero()),
-          Padding(
-            padding: widget.heroPadding.add(
-              EdgeInsets.only(top: topInset + GameScaffold.barHeight, bottom: widget.panelOverlap),
+          ValueListenableBuilder<double>(
+            valueListenable: _offset,
+            builder: (context, offset, child) => _HeroUnderBar(
+              line: topInset + GameScaffold.barHeight + offset,
+              child: child!,
             ),
-            child: DefaultTextStyle.merge(style: const TextStyle(color: Colors.white), child: widget.hero),
+            child: Padding(
+              padding: widget.heroPadding.add(
+                EdgeInsets.only(top: topInset + GameScaffold.barHeight, bottom: widget.panelOverlap),
+              ),
+              child: DefaultTextStyle.merge(style: const TextStyle(color: Colors.white), child: widget.hero),
+            ),
           ),
           Positioned(
             left: 0,
@@ -662,11 +694,12 @@ class _GameScaffoldState extends State<GameScaffold> {
               top: 0,
               left: 0,
               right: 0,
-              child: ValueListenableBuilder<double>(
-                valueListenable: _solid,
-                builder: (context, solid, _) => _GameBar(
+              child: ListenableBuilder(
+                listenable: Listenable.merge(<Listenable>[_solid, _titleReveal]),
+                builder: (context, _) => _GameBar(
                   title: widget.title,
-                  solid: solid,
+                  solid: _solid.value,
+                  titleOpacity: _titleReveal.value,
                   topInset: topInset,
                   showBack: widget.showBack,
                   onBack: widget.onBack ?? () => Navigator.maybePop(context),
@@ -685,6 +718,7 @@ class _GameBar extends StatelessWidget {
   const _GameBar({
     required this.title,
     required this.solid,
+    required this.titleOpacity,
     required this.topInset,
     required this.showBack,
     required this.onBack,
@@ -693,6 +727,7 @@ class _GameBar extends StatelessWidget {
 
   final String title;
   final double solid;
+  final double titleOpacity;
   final double topInset;
   final bool showBack;
   final VoidCallback onBack;
@@ -715,7 +750,9 @@ class _GameBar extends StatelessWidget {
         padding: EdgeInsets.only(top: topInset),
         child: SizedBox(
           height: GameScaffold.barHeight,
-          child: IconTheme(
+          child: MediaQuery.withClampedTextScaling(
+            maxScaleFactor: GameScaffold.barMaxTextScale,
+            child: IconTheme(
             data: IconThemeData(color: foreground, size: 24),
             child: Row(
               children: <Widget>[
@@ -743,15 +780,22 @@ class _GameBar extends StatelessWidget {
                 Expanded(
                   child: Semantics(
                     header: true,
-                    child: Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: base.copyWith(
-                        fontSize: 16,
-                        height: 22 / 16,
-                        fontWeight: FontWeight.w600,
-                        color: foreground,
+                    child: Opacity(
+                      opacity: titleOpacity,
+                      alwaysIncludeSemantics: true,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: AlignmentDirectional.centerStart,
+                        child: Text(
+                          title,
+                          maxLines: 1,
+                          style: base.copyWith(
+                            fontSize: 16,
+                            height: 22 / 16,
+                            fontWeight: FontWeight.w600,
+                            color: foreground,
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -761,8 +805,47 @@ class _GameBar extends StatelessWidget {
               ],
             ),
           ),
+          ),
         ),
       ),
     );
   }
+}
+
+/// Isi hero yang memudar tepat di bawah garis bilah dan terpotong di atasnya
+/// (termasuk ketukan), supaya tidak bertabrakan dengan bilah transparan.
+class _HeroUnderBar extends StatelessWidget {
+  const _HeroUnderBar({required this.line, required this.child});
+
+  /// Garis bawah bilah dalam koordinat hero.
+  final double line;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRect(
+      clipper: _BelowLineClipper(line),
+      child: ShaderMask(
+        blendMode: BlendMode.dstIn,
+        shaderCallback: (bounds) => ui.Gradient.linear(
+          Offset(0, line),
+          Offset(0, line + GameScaffold.heroFadeExtent),
+          const <Color>[Color(0x00FFFFFF), Color(0xFFFFFFFF)],
+        ),
+        child: child,
+      ),
+    );
+  }
+}
+
+class _BelowLineClipper extends CustomClipper<Rect> {
+  const _BelowLineClipper(this.line);
+
+  final double line;
+
+  @override
+  Rect getClip(Size size) => Rect.fromLTRB(0, line.clamp(0.0, size.height), size.width, size.height);
+
+  @override
+  bool shouldReclip(_BelowLineClipper oldClipper) => oldClipper.line != line;
 }

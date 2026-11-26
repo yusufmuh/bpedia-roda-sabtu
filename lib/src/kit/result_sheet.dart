@@ -62,6 +62,7 @@ class ResultSheet extends StatefulWidget {
     this.onClose,
     this.confetti = true,
     this.artHeight = 132,
+    this.artWidth = 200,
   });
 
   /// Judul di panggung, mis. "Selamat, kamu menang!".
@@ -70,8 +71,10 @@ class ResultSheet extends StatefulWidget {
   /// Penjelasan di panel, mis. cara hadiah dikirim.
   final String message;
 
-  /// Seni hadiah di atas podium (foto produk, tumpukan koin). Diberi tinggi
-  /// [artHeight].
+  /// Seni hadiah di atas podium (foto produk, tumpukan koin). Diletakkan di
+  /// dasar-tengah kotak tetap [artWidth] x [artHeight] dengan batas longgar,
+  /// jadi gambar besar mengecil mengikuti kotak dan anak tanpa ukuran
+  /// (`AspectRatio`, `SizedBox.expand`) mengisi kotak.
   final Widget art;
   final String primaryLabel;
   final VoidCallback? onPrimary;
@@ -114,6 +117,7 @@ class ResultSheet extends StatefulWidget {
   final VoidCallback? onClose;
   final bool confetti;
   final double artHeight;
+  final double artWidth;
 
   @override
   State<ResultSheet> createState() => _ResultSheetState();
@@ -175,89 +179,89 @@ class _ResultSheetState extends State<ResultSheet> with SingleTickerProviderStat
     // Aksi sekunder sudah membawa bantalan sentuh 48 dp di bawah teksnya.
     final bottomGap = secondaryLabel == null ? 32.0 : 20.0;
 
-    final stage = ConfettiBurst(
-      controller: _confetti,
-      particleCount: 90,
-      child: DecoratedBox(
-        decoration: const BoxDecoration(gradient: FestivePalette.stage),
-        child: Stack(
-          children: <Widget>[
-            const Positioned.fill(child: SunburstRays(opacity: 0.09, center: Alignment(0, 0.25), rayCount: 14)),
-            const Positioned.fill(child: Sparkles(count: 14, seed: 9)),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  if (ribbon == null) ...<Widget>[
-                    Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.55),
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                    const SizedBox(height: 22),
-                  ] else
-                    const SizedBox(height: 34),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 28),
-                    child: Text(
-                      widget.title,
-                      textAlign: TextAlign.center,
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                      style: base.copyWith(
-                        fontSize: 24,
-                        height: 30 / 24,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                        shadows: const <Shadow>[
-                          Shadow(color: Color(0xD99E1242), offset: Offset(0, 1.5)),
-                          Shadow(color: Color(0x666B1439), offset: Offset(0, 4), blurRadius: 10),
-                        ],
-                      ),
+    // Urutan lapis: latar, sinar, kilau, konfeti, lalu judul/pil/seni di atas
+    // supaya partikel tidak pernah menutupi teks (W1-04).
+    final stage = DecoratedBox(
+      decoration: const BoxDecoration(gradient: FestivePalette.stage),
+      child: Stack(
+        children: <Widget>[
+          const Positioned.fill(child: SunburstRays(opacity: 0.09, center: Alignment(0, 0.25), rayCount: 14)),
+          const Positioned.fill(child: Sparkles(count: 14, seed: 9)),
+          Positioned.fill(child: ConfettiBurst(controller: _confetti, particleCount: 90)),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                if (ribbon == null) ...<Widget>[
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.55),
+                      borderRadius: BorderRadius.circular(2),
                     ),
                   ),
-                  if (pill != null) ...<Widget>[
-                    const SizedBox(height: 10),
-                    _GoldPill(label: pill),
-                  ],
-                  const SizedBox(height: 4),
-                  _Stage(
-                    intro: _intro,
-                    reduce: reduce,
-                    art: widget.art,
-                    artHeight: widget.artHeight,
-                    companion: widget.companion,
-                    podium: widget.podium,
-                    showPodium: widget.showPodium,
-                  ),
-                  const SizedBox(height: 22 + _overlap),
-                ],
-              ),
-            ),
-            if (widget.showClose)
-              Positioned(
-                top: 6,
-                right: 8,
-                child: Pressable(
-                  onTap: widget.onClose ?? () => Navigator.maybePop(context),
-                  semanticLabel: 'Tutup',
-                  tooltip: 'Tutup',
-                  focusRadius: const BorderRadius.all(Radius.circular(24)),
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withValues(alpha: 0.24)),
-                    child: const SizedBox.square(
-                      dimension: 36,
-                      child: Icon(Icons.close_rounded, size: 20, color: Colors.white),
+                  const SizedBox(height: 22),
+                ] else
+                  const SizedBox(height: 34),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 28),
+                  child: Text(
+                    widget.title,
+                    textAlign: TextAlign.center,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: base.copyWith(
+                      fontSize: 24,
+                      height: 30 / 24,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                      shadows: const <Shadow>[
+                        Shadow(color: Color(0xD99E1242), offset: Offset(0, 1.5)),
+                        Shadow(color: Color(0x666B1439), offset: Offset(0, 4), blurRadius: 10),
+                      ],
                     ),
                   ),
                 ),
+                if (pill != null) ...<Widget>[
+                  const SizedBox(height: 10),
+                  _GoldPill(label: pill),
+                ],
+                const SizedBox(height: 4),
+                _Stage(
+                  intro: _intro,
+                  reduce: reduce,
+                  art: widget.art,
+                  artHeight: widget.artHeight,
+                  artWidth: widget.artWidth,
+                  companion: widget.companion,
+                  podium: widget.podium,
+                  showPodium: widget.showPodium,
+                ),
+                const SizedBox(height: 22 + _overlap),
+              ],
+            ),
+          ),
+          if (widget.showClose)
+            Positioned(
+              top: 6,
+              right: 8,
+              child: Pressable(
+                onTap: widget.onClose ?? () => Navigator.maybePop(context),
+                semanticLabel: 'Tutup',
+                tooltip: 'Tutup',
+                focusRadius: const BorderRadius.all(Radius.circular(24)),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withValues(alpha: 0.24)),
+                  child: const SizedBox.square(
+                    dimension: 36,
+                    child: Icon(Icons.close_rounded, size: 20, color: Colors.white),
+                  ),
+                ),
               ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
 
@@ -484,6 +488,7 @@ class _Stage extends StatelessWidget {
     required this.reduce,
     required this.art,
     required this.artHeight,
+    required this.artWidth,
     required this.companion,
     required this.podium,
     required this.showPodium,
@@ -493,6 +498,7 @@ class _Stage extends StatelessWidget {
   final bool reduce;
   final Widget art;
   final double artHeight;
+  final double artWidth;
   final Widget? companion;
   final ImageProvider? podium;
   final bool showPodium;
@@ -531,6 +537,8 @@ class _Stage extends StatelessWidget {
                   : Image(image: podium, width: _podiumWidth, height: _podiumHeight * 1.4, fit: BoxFit.contain),
             ),
           Positioned(
+            left: 0,
+            right: 0,
             bottom: podiumRest,
             child: AnimatedBuilder(
               animation: intro,
@@ -543,9 +551,14 @@ class _Stage extends StatelessWidget {
                   child: Transform.scale(scale: scale, alignment: Alignment.bottomCenter, child: child),
                 );
               },
-              child: SizedBox(
-                height: artHeight,
-                child: FittedBox(fit: BoxFit.contain, alignment: Alignment.bottomCenter, child: art),
+              child: Align(
+                alignment: Alignment.bottomCenter,
+                heightFactor: 1,
+                child: SizedBox(
+                  width: artWidth,
+                  height: artHeight,
+                  child: Align(alignment: Alignment.bottomCenter, child: art),
+                ),
               ),
             ),
           ),

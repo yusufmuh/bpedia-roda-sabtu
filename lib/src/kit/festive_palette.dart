@@ -66,10 +66,14 @@ abstract final class FestivePalette {
     BoxShadow(color: Color(0x29B3164B), blurRadius: 30, offset: Offset(0, 10)),
   ];
 
-  /// Warna panel di atas latar host: `surface` pada tema terang, sedikit
-  /// terangkat pada tema gelap supaya terpisah dari latar tanpa bayangan.
+  /// Warna panel di atas latar host: `surface` pada tema terang. Pada tema
+  /// gelap memakai `surfaceContainerHigh` (token `surfaceRaised` SPEC-V3,
+  /// `#242126` di aplikasi dan hub) supaya panel gelap seragam antarmodul;
+  /// bila host tidak membedakannya dari `surface`, panel diangkat 6%
+  /// `onSurface`.
   static Color panelColor(ColorScheme scheme) {
     if (scheme.brightness == Brightness.light) return scheme.surface;
+    if (scheme.surfaceContainerHigh != scheme.surface) return scheme.surfaceContainerHigh;
     return Color.alphaBlend(scheme.onSurface.withValues(alpha: 0.06), scheme.surface);
   }
 
